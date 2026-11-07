@@ -56,12 +56,12 @@ export function openModal({ title, sub = '', body = '', foot = '', wide = false,
 }
 
 /** Поповер-меню у кнопки. items: [{ value, label, hint, checked }] */
-export function openPopover(anchor, items, onPick, { align = 'left', up = false } = {}) {
+export function openPopover(anchor, items, onPick, { align = 'left', up = false, title = '' } = {}) {
   document.querySelectorAll('.cqa-pop').forEach((p) => p.remove());
   const pop = document.createElement('div');
   pop.className = 'cqa-pop';
   pop.setAttribute('role', 'menu');
-  pop.innerHTML = items.map((it) => `<button type="button" class="cqa-pop__item" role="menuitemradio" aria-checked="${!!it.checked}" data-v="${esc(it.value)}"><span>${esc(it.label)}${it.hint ? `<small>${esc(it.hint)}</small>` : ''}</span>${it.checked ? `<span style="margin-left:auto">${icon('check', 'cqa-ico--sm')}</span>` : ''}</button>`).join('');
+  pop.innerHTML = (title ? `<div class="cqa-pop__title">${esc(title)}</div>` : '') + items.map((it) => `<button type="button" class="cqa-pop__item" role="menuitemradio" aria-checked="${!!it.checked}" data-v="${esc(it.value)}">${it.avatar ? `<span class="cqa-pop__av">${esc(it.avatar)}</span>` : ''}<span class="cqa-pop__text"><b>${esc(it.label)}</b>${it.hint ? `<small>${esc(it.hint)}</small>` : ''}</span>${it.checked ? `<span class="cqa-pop__check">${icon('check', 'cqa-ico--sm')}</span>` : ''}</button>`).join('');
   rootEl().appendChild(pop);
   const r = anchor.getBoundingClientRect();
   const pr = pop.getBoundingClientRect();

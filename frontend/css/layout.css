@@ -38,7 +38,9 @@
 .cqa-user { position: relative; display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 8px 4px; border: 0; border-top: 1px solid var(--cqa-line); background: transparent; text-align: left; }
 .cqa-user:hover .cqa-user__name { color: var(--cqa-green-dark); }
 .cqa-avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--cqa-green-dark); color: var(--cqa-on-accent); display: grid; place-items: center; font-weight: 600; font-size: var(--cqa-fs-sm); flex: none; }
-.cqa-user__name { display: block; font-weight: 600; transition: color var(--cqa-fast); }
+.cqa-user__text { min-width: 0; }
+.cqa-user__name { display: block; font-weight: 600; line-height: 1.25; transition: color var(--cqa-fast); }
+.cqa-user__role { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cqa-user__role { display: block; font-size: var(--cqa-fs-xs); color: var(--cqa-text-3); }
 .cqa-user .cqa-ico { margin-left: auto; color: var(--cqa-text-3); }
 .cqa-side__tools { display: flex; gap: 4px; padding: 0 2px; }

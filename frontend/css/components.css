@@ -139,8 +139,17 @@
 .cqa-cmd__foot { display: flex; gap: 14px; padding: 10px 16px; border-top: 1px solid var(--cqa-line); font-size: var(--cqa-fs-xs); color: var(--cqa-text-3); }
 
 /* Поповер */
-.cqa-pop { position: absolute; z-index: 40; min-width: 220px; padding: 6px; background: var(--cqa-surface); border: 1px solid var(--cqa-line); border-radius: var(--cqa-r); box-shadow: var(--cqa-shadow-pop); }
-.cqa-pop__item { display: flex; align-items: center; gap: 10px; width: 100%; height: 38px; padding: 0 10px; border: 0; background: transparent; border-radius: var(--cqa-r-sm); text-align: left; }
-.cqa-pop__item:hover { background: var(--cqa-hover); }
-.cqa-pop__item[aria-checked="true"] { color: var(--cqa-green-dark); font-weight: 600; }
-.cqa-pop__item small { display: block; color: var(--cqa-text-3); font-weight: 400; font-size: var(--cqa-fs-xs); }
+.cqa-pop { position: absolute; z-index: 40; min-width: 280px; padding: 6px; background: var(--cqa-surface); border: 1px solid var(--cqa-line); border-radius: var(--cqa-r); box-shadow: var(--cqa-shadow-pop); }
+.cqa-pop__title { padding: 6px 10px 8px; font-size: var(--cqa-fs-xs); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--cqa-text-3); }
+.cqa-pop__item { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 40px; padding: 9px 10px; border: 0; background: transparent; border-radius: var(--cqa-r-sm); text-align: left; color: var(--cqa-text); transition: background var(--cqa-fast); }
+.cqa-pop__item + .cqa-pop__item { margin-top: 2px; }
+.cqa-pop__item:hover { background: var(--cqa-surface-2); }
+.cqa-pop__item:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--cqa-green-line); }
+.cqa-pop__item[aria-checked="true"] { background: var(--cqa-green-soft); }
+.cqa-pop__text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cqa-pop__text b { font-weight: 600; line-height: 1.25; }
+.cqa-pop__item[aria-checked="true"] .cqa-pop__text b { color: var(--cqa-green-dark); }
+.cqa-pop__item small { display: block; color: var(--cqa-text-3); font-weight: 400; font-size: var(--cqa-fs-xs); line-height: 1.35; }
+.cqa-pop__av { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--cqa-surface-3); color: var(--cqa-text-2); font-size: var(--cqa-fs-xs); font-weight: 600; }
+.cqa-pop__item[aria-checked="true"] .cqa-pop__av { background: var(--cqa-green-dark); color: var(--cqa-on-accent); }
+.cqa-pop__check { margin-left: auto; flex: none; color: var(--cqa-green-dark); display: inline-flex; }

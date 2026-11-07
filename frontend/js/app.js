@@ -60,7 +60,7 @@ function shell() {
             <button type="button" class="cqa-btn cqa-btn--ghost cqa-btn--icon cqa-btn--sm" id="cqa-theme" title="Тема" aria-label="Сменить тему">${icon(s.theme === 'dark' ? 'sun' : 'moon')}</button>
             <button type="button" class="cqa-btn cqa-btn--ghost cqa-btn--icon cqa-btn--sm" id="cqa-help" title="Горячие клавиши (?)" aria-label="Горячие клавиши">${icon('keyboard')}</button>
           </div>
-          <button type="button" class="cqa-user" id="cqa-user" aria-haspopup="menu" title="Сменить роль">
+          <button type="button" class="cqa-user" id="cqa-user" aria-haspopup="menu" aria-label="Сменить роль">
             <span class="cqa-avatar">${role.initials}</span>
             <span class="cqa-user__text"><span class="cqa-user__name">${esc(role.person)}</span><span class="cqa-user__role">${role.label}</span></span>
             ${icon('up', 'cqa-ico--sm')}
@@ -86,14 +86,14 @@ function shell() {
     root.querySelector('#cqa-theme').innerHTML = icon(theme === 'dark' ? 'sun' : 'moon');
   });
   root.querySelector('#cqa-user').addEventListener('click', (e) => {
-    openPopover(e.currentTarget, Object.entries(ROLES).map(([k, r]) => ({ value: k, label: r.label, hint: r.hint, checked: k === store.get().role })), (v) => {
+    openPopover(e.currentTarget, Object.entries(ROLES).map(([k, r]) => ({ value: k, label: r.label, hint: `${r.person} · ${r.hint}`, avatar: r.initials, checked: k === store.get().role })), (v) => {
       if (v === store.get().role) return;
       store.set({ role: v });
       shell();
       toast(`Роль: ${ROLES[v].label}`);
       const allowed = NAV.find((n) => n.key === currentKey)?.roles.includes(v);
       if (!allowed) location.hash = defaultRoute(); else route(true);
-    }, { up: true });
+    }, { up: true, title: 'Сменить роль' });
   });
   root.querySelector('#cqa-cmd-btn').addEventListener('click', openPalette);
   root.querySelectorAll('[data-cmd]').forEach((b) => b.addEventListener('click', openPalette));
