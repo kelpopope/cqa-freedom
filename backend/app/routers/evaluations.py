@@ -7,6 +7,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from ..services import accuracy
 from ..services.evaluator import EvaluationError, evaluate
 
 router = APIRouter(prefix="/api", tags=["evaluations"])
@@ -27,3 +28,14 @@ async def evaluate_one(req: EvaluateRequest):
         if e.evaluation:
             body["evaluation"] = e.evaluation
         return JSONResponse(status_code=e.status_code, content=body)
+
+
+@router.get("/metrics/accuracy")
+def accuracy_metrics(group_id: str = "DEV", details: bool = False):
+    """Совпадение с эталоном data/gt/<group>_labels.json. details=true — со списком расхождений."""
+    report = accuracy.compute(group_id)
+    if "error" in report:
+        return JSONResponse(status_code=404, content={"error": report["error"]})
+    if not details:
+        report.pop("mismatches", None)
+    return report
