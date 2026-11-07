@@ -104,17 +104,25 @@ def init_db(path: Path | None = None) -> None:
 
 
 def seed_default_checklist(path: Path | None = None) -> None:
-    """Если чек-листов нет — загрузить data/checklists/default.json как версию 1 (активную)."""
+    """data/checklists/default.json — источник правды для версии 1.
+
+    Нет версий — вставить v1 (активной). Есть только v1 и файл изменился (правили правила оценки) —
+    обновить v1 на месте. Если через UI уже созданы версии 2+, ничего не трогаем.
+    """
     src = CHECKLISTS_DIR / "default.json"
     if not src.exists():
         return
+    data = json.loads(src.read_text(encoding="utf-8"))
+    data["version"] = 1
     with connect(path) as conn:
-        if conn.execute("SELECT 1 FROM checklists LIMIT 1").fetchone():
-            return
-        data = json.loads(src.read_text(encoding="utf-8"))
-        data["version"] = 1
-        data["is_active"] = True
-        conn.execute(
-            "INSERT INTO checklists (checklist_id, version, is_active, data) VALUES (?, 1, 1, ?)",
-            (data["checklist_id"], dumps(data)),
-        )
+        rows = conn.execute("SELECT version, is_active, data FROM checklists WHERE checklist_id=?",
+                            (data["checklist_id"],)).fetchall()
+        if not rows:
+            data["is_active"] = True
+            conn.execute("INSERT INTO checklists (checklist_id, version, is_active, data) VALUES (?, 1, 1, ?)",
+                         (data["checklist_id"], dumps(data)))
+        elif len(rows) == 1 and rows[0]["version"] == 1:
+            data["is_active"] = bool(rows[0]["is_active"])
+            if loads(rows[0]["data"]) != data:
+                conn.execute("UPDATE checklists SET data=? WHERE checklist_id=? AND version=1",
+                             (dumps(data), data["checklist_id"]))

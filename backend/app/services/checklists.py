@@ -189,8 +189,25 @@ def create(data: dict[str, Any]) -> dict[str, Any]:
     return get(checklist_id, 1)
 
 
+def _carry_over_guidance(prev: dict[str, Any] | None, data: dict[str, Any]) -> dict[str, Any]:
+    """Редактор UI может не знать поле `guidance`. Если критерий не изменился по сути (тот же id, тип,
+    название и описание), переносим его уточняющие правила из прошлой версии, чтобы не потерять точность."""
+    if not prev or not isinstance(data.get("criteria"), list):
+        return data
+    old = {c["id"]: c for c in prev.get("criteria", [])}
+    criteria = []
+    for c in data["criteria"]:
+        o = old.get(str(c.get("id", "")).strip()) if isinstance(c, dict) else None
+        if (o and o.get("guidance") and "guidance" not in c and o.get("type") == c.get("type")
+                and _text(o.get("title")) == _text(c.get("title"))
+                and _text(o.get("description")) == _text(c.get("description"))):
+            c = {**c, "guidance": o["guidance"]}
+        criteria.append(c)
+    return {**data, "criteria": criteria}
+
+
 def update(checklist_id: str, data: dict[str, Any]) -> dict[str, Any] | None:
-    clean = validate_checklist(data)
+    clean = validate_checklist(_carry_over_guidance(get(checklist_id), data))
     with db.connect() as conn:
         row = conn.execute("SELECT MAX(version) FROM checklists WHERE checklist_id=?", (checklist_id,)).fetchone()
         if row[0] is None:
