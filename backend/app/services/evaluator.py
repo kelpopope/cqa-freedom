@@ -5,7 +5,10 @@ LLM отвечает только «что произошло» (ответы, �
 from __future__ import annotations
 
 import re
+import time
 import uuid
+from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -15,7 +18,7 @@ from . import checklists as checklist_store
 from . import conversations as conversation_store
 from .llm_client import LLMError, complete_json
 from .prompts import PROMPT_VERSION, build_prompt, build_response_schema
-from .scoring import score
+from .scoring import normalize_answer, score
 
 ASTANA = timezone(timedelta(hours=5))
 MAX_ATTEMPTS = 3
@@ -133,7 +136,8 @@ def _save(evaluation: dict[str, Any]) -> None:
              evaluation["checklist_version"], evaluation["status"], db.dumps(evaluation)))
 
 
-def assemble(conversation: dict[str, Any], checklist: dict[str, Any], llm: dict[str, Any]) -> dict[str, Any]:
+def assemble(conversation: dict[str, Any], checklist: dict[str, Any], llm: dict[str, Any],
+             votes: dict[str, list] | None = None) -> dict[str, Any]:
     """Из ответа LLM собирает Evaluation (без id/usage): проверка доказательств, баллы, флаги, needs_review."""
     transcript = conversation["transcript"]
     n = len(transcript)
@@ -162,6 +166,10 @@ def assemble(conversation: dict[str, Any], checklist: dict[str, Any], llm: dict[
             "confidence": item.get("confidence", "high"),
             "source": "llm",
         }
+        if votes and len(votes.get(cid, [])) > 1:
+            v = votes[cid]
+            row["votes"] = v
+            row["agreement"] = round(v.count(rows[cid]["answer"]) / len(v), 2)
         if c["type"] == "flag":
             row["flag_types"] = (item.get("flag_types") or []) if answer == "yes" else []
             if answer == "yes":
@@ -189,8 +197,40 @@ def assemble(conversation: dict[str, Any], checklist: dict[str, Any], llm: dict[
     }
 
 
+def validate_llm(checklist: dict[str, Any], llm: dict[str, Any]) -> None:
+    """Ответ модели допустим по чек-листу (иначе ScoringError/KeyError → повторный запрос)."""
+    for c in checklist["criteria"]:
+        normalize_answer(c, llm["criteria"][c["id"]]["answer"])
+
+
+def vote(checklist: dict[str, Any], samples: list[dict[str, Any]]) -> tuple[dict[str, Any], dict[str, list]]:
+    """Self-consistency: по каждому критерию — ответ большинства. Ничья на шкале — медиана ступеней,
+    иначе — ответ первого прогона. Объяснение и доказательства берутся из прогона с победившим ответом."""
+    merged = {"client_request": samples[0].get("client_request", ""), "criteria": {}}
+    votes: dict[str, list] = {}
+    for c in checklist["criteria"]:
+        cid = c["id"]
+        answers = [normalize_answer(c, s["criteria"][cid]["answer"]) for s in samples]
+        votes[cid] = answers
+        counts = Counter(answers)
+        top = max(counts.values())
+        leaders = [a for a in answers if counts[a] == top]
+        winner = leaders[0]
+        if len(set(leaders)) > 1 and c["type"] == "scale":
+            nums = sorted(a for a in answers if a != "na")
+            if nums:
+                winner = nums[(len(nums) - 1) // 2]
+        idx = next(i for i, a in enumerate(answers) if a == winner)
+        item = dict(samples[idx]["criteria"][cid])
+        item["answer"] = str(winner) if c["type"] == "scale" and winner != "na" else winner
+        if counts[winner] * 2 <= len(answers):          # нет строгого большинства
+            item["confidence"] = "low"
+        merged["criteria"][cid] = item
+    return merged, votes
+
+
 def evaluate(conversation_id: str, checklist_id: str = "default", version: int | None = None,
-             reasoning_effort: str | None = None) -> dict[str, Any]:
+             reasoning_effort: str | None = None, samples: int | None = None) -> dict[str, Any]:
     conversation = conversation_store.get(conversation_id)
     if conversation is None:
         raise EvaluationError(f"Диалог {conversation_id} не найден", 404)
@@ -214,18 +254,44 @@ def evaluate(conversation_id: str, checklist_id: str = "default", version: int |
 
     messages = build_prompt(checklist, conversation)
     schema = build_response_schema(checklist)
-    usage, last_error = None, None
-    for _ in range(MAX_ATTEMPTS):
-        try:
-            llm, u = complete_json(messages, schema, reasoning_effort=effort)
+    n = max(1, int(samples or s.self_consistency))
+    evaluation["model"]["samples"] = n
+    started = time.monotonic()
+
+    def one_sample(_):
+        usage, error = None, None
+        for _attempt in range(MAX_ATTEMPTS):
+            try:
+                llm, u = complete_json(messages, schema, reasoning_effort=effort)
+                usage = _sum_usage(usage, u)
+                validate_llm(checklist, llm)
+                return llm, usage, None
+            except (LLMError, KeyError, ValueError, TypeError) as e:
+                error = f"{type(e).__name__}: {e}"
+        return None, usage, error
+
+    if n == 1:
+        results = [one_sample(0)]
+    else:
+        with ThreadPoolExecutor(n) as ex:
+            results = list(ex.map(one_sample, range(n)))
+
+    usage = None
+    for _, u, _ in results:
+        if u:
             usage = _sum_usage(usage, u)
-            evaluation.update(assemble(conversation, checklist, llm))
-            evaluation["status"] = "done"
-            evaluation["usage"] = usage
-            _save(evaluation)
-            return evaluation
-        except (LLMError, KeyError, ValueError, TypeError) as e:
-            last_error = f"{type(e).__name__}: {e}"
+    if usage:
+        usage["duration_ms"] = int((time.monotonic() - started) * 1000)
+    samples_ok = [llm for llm, _, _ in results if llm is not None]
+    last_error = next((err for _, _, err in results if err), None)
+
+    if samples_ok:
+        merged, votes = vote(checklist, samples_ok)
+        evaluation.update(assemble(conversation, checklist, merged, votes))
+        evaluation["status"] = "done"
+        evaluation["usage"] = usage
+        _save(evaluation)
+        return evaluation
 
     evaluation.update({"status": "error", "error": last_error, "usage": usage, "criteria": [], "sections": [],
                        "total": None, "gross_error": {"flag": False, "types": [], "evidence": [], "rules_agree": None},
