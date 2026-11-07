@@ -1,6 +1,5 @@
 // Оболочка: боковое меню, роли, маршруты, палитра команд (Ctrl K), горячие клавиши, адаптив.
 import { api } from './api.js';
-import { CONFIG } from './config.js';
 import { store, ROLES } from './store.js';
 import { icon } from './icons.js';
 import { esc, toast } from './utils.js';
@@ -39,10 +38,8 @@ function defaultRoute() { return store.get().role === 'manager' ? '#/overview' :
 function shell() {
   const s = store.get();
   const role = ROLES[s.role];
-  const v2 = CONFIG.skin === 'v2';
-  root.dataset.skin = v2 ? 'v2' : 'classic';
-  root.dataset.theme = v2 ? 'dark' : s.theme;
-  document.body.style.background = v2 ? '#0b0d0c' : s.theme === 'dark' ? '#121512' : '#f5f6f3';
+  root.dataset.theme = s.theme;
+  document.body.style.background = s.theme === 'dark' ? '#121512' : '#f5f6f3';
   root.innerHTML = `
     <a class="cqa-skip" href="#cqa-main" data-skip>Перейти к содержимому</a>
     <div class="cqa-shell">

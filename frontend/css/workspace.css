@@ -237,9 +237,6 @@ button.cqa-sla { cursor: pointer; }
 button.cqa-sla:hover { background: var(--cqa-surface-2); }
 .cqa-sla--bad { border-color: var(--cqa-bad); color: var(--cqa-bad); }
 
-/* Элементы оформления v2 (шапка диалога, номера и баллы в пути) — в классическом скрыты */
-.cqa-hd, .cqa-path__n, .cqa-path__v { display: none; }
-
 /* ---------- Список диалогов: колонка уезжает и выезжает, сдвигая переписку ---------- */
 .cqa-q__head .cqa-q-pin { margin-left: auto; }
 .cqa-q-toggle span { margin-left: 6px; }

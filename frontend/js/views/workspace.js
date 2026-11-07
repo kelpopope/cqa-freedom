@@ -11,7 +11,6 @@ import { refreshShell } from '../app.js';
 const S = { main: null, list: [], id: null, data: null, active: null, player: null, keys: null, loadSeq: 0 };
 const pad2 = (n) => String(n).padStart(2, '0');
 const nf = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 });
-const isV2 = () => document.querySelector('.cqa-root')?.dataset.skin === 'v2';
 const pts = (x) => (x == null ? '—' : nf.format(Math.round(x * 100) / 100));
 const role = () => store.get().role;
 
@@ -150,8 +149,7 @@ function mapHtml(conv, ev, meta) {
     const ref = kind === 'na' ? 'N/A' : jump.length ? `#${turnNo(jump[0])}${jump.length > 1 ? `+${jump.length - 1}` : ''}` : '';
     const verdict = kind === 'na' ? 'N/A' : c.type === 'flag' ? (kind === 'bad' ? 'выявлено' : 'нет') : answerView(c, r.answer).label;
     const tip = `${c.num} ${c.title}: ${verdict}${jump.length ? `, реплики ${jump.map((i) => `#${turnNo(i)}`).join(', ')}` : ''}`;
-    const val = kind === 'na' ? 'N/A' : c.type === 'flag' ? (kind === 'bad' ? 'выявлено' : 'нет нарушений') : `<b>${pts(r.raw_points)}</b>/${c.weight}`;
-    return `<button type="button" class="cqa-path__p cqa-path__p--${kind}" data-pill="${c.id}" title="${esc(tip)}" aria-label="${esc(tip)}"><span class="cqa-path__n">${c.num}</span><span class="cqa-path__v">${val}</span><span class="cqa-path__t">${esc(PATH_NAME[c.id] || c.title)}</span><span class="cqa-path__s">${icon(ico, 'cqa-ico--sm')}${ref ? `<span class="cqa-path__r">${ref}</span>` : ''}</span></button>`;
+    return `<button type="button" class="cqa-path__p cqa-path__p--${kind}" data-pill="${c.id}" title="${esc(tip)}" aria-label="${esc(tip)}"><span class="cqa-path__t">${esc(PATH_NAME[c.id] || c.title)}</span><span class="cqa-path__s">${icon(ico, 'cqa-ico--sm')}${ref ? `<span class="cqa-path__r">${ref}</span>` : ''}</span></button>`;
   }).join('');
   return `<div class="cqa-path" aria-label="Путь по чек-листу">${pills}</div>`;
 }
@@ -268,7 +266,7 @@ function chatHtml(conv, ev, meta, ids) {
       </div>
       ${ev?.headline ? `<div class="cqa-c__headline">${esc(ev.headline)}</div>` : ''}
     </div>
-    ${isV2() ? '' : mapHtml(conv, ev, meta)}
+    ${mapHtml(conv, ev, meta)}
     ${isCall ? playerHtml(conv, ev, meta) : ''}
     <div class="cqa-col__body cqa-scroll" id="cqa-thread-scroll"><div class="cqa-thread" id="cqa-thread">${threadHtml(conv, ev, meta)}</div></div>`;
 }
@@ -320,25 +318,6 @@ function critHtml(c, r, open) {
         <div class="cqa-cr__foot"><span>${esc(mathText(c, r))}</span><span class="cqa-push">${act}</span></div>
       </div></div></div>
     </div>`;
-}
-
-// Шапка диалога в оформлении v2: ключевые поля в одну строку и оценка по каждому критерию под ней.
-function hdHtml(conv, ev, meta, cl) {
-  const it = S.list.find((x) => x.conversation_id === conv.conversation_id) || {};
-  const [label, tone] = status(it);
-  const total = ev ? totals(ev, cl).total : null;
-  const st = ev?.review?.status === 'confirmed' ? ['ok', 'Проверено'] : [tone || 'outline', label];
-  const isCall = conv.channel === 'voice call';
-  const cell = (k, v, cls = '') => `<div class="cqa-hd__cell ${cls}"><span class="cqa-hd__k">${k}</span><span class="cqa-hd__v">${v}</span></div>`;
-  return `<div class="cqa-hd__row">
-      ${cell('Диалог', esc(conv.conversation_id), 'cqa-hd__cell--id')}
-      ${conv.operator_name ? cell('Оператор', esc(conv.operator_name)) : ''}
-      ${cell('Канал', `${icon(isCall ? 'phone' : 'chat', 'cqa-ico--sm')}${esc(CHANNEL[conv.channel] || conv.channel)}`)}
-      ${cell('Язык', esc(LANG[conv.language] || conv.language))}
-      ${cell('Итоговая оценка', `<b class="${total != null && total < 60 ? 'is-low' : ''}">${total == null ? '—' : fmt2(total)}</b> / 100`, 'cqa-hd__cell--total')}
-      ${cell('Статус проверки', `<span class="cqa-badge cqa-badge--${st[0]}">${esc(st[1])}</span>`)}
-    </div>
-    ${ev ? `<div class="cqa-hd__crit"><span class="cqa-hd__lbl">Оценка по критериям</span>${mapHtml(conv, ev, meta)}</div>` : ''}`;
 }
 
 // Кольцо итога: дуга критерия пропорциональна его весу после перераспределения N/A;
@@ -612,7 +591,6 @@ async function loadConversation(id, { keepScroll = false } = {}) {
   chat.classList.remove('cqa-enter'); void chat.offsetWidth; chat.classList.add('cqa-enter');
   S.player = conv.channel === 'voice call' ? setupPlayer(chat, conv) : null;
   ev.innerHTML = data.evaluation ? evalHtml(conv, data.evaluation, checklist) : emptyEvalHtml();
-  const hd = S.main.querySelector('#cqa-hd'); if (hd) hd.innerHTML = isV2() ? hdHtml(conv, data.evaluation, meta, checklist) : '';
   if (data.evaluation) {
     const tot = ev.querySelector('#cqa-total');
     if (!keepScroll && tot?.dataset.v) countUp(tot, Number(tot.dataset.v));
@@ -712,7 +690,7 @@ export async function render(main, { id } = {}) {
   S.id = id && S.list.some((x) => x.conversation_id === id) ? id : ids[0];
   if (!S.id) { main.innerHTML = `${headHtml()}<div class="cqa-card"><div class="cqa-empty"><div class="cqa-empty__icon">${icon('inbox')}</div><h2>Диалогов пока нет</h2><p>Загрузите набор по group_id, чтобы начать проверку</p></div></div>`; bindHead(); return; }
   if (!id) history.replaceState(null, '', `#/dialogs/${encodeURIComponent(S.id)}`);
-  main.innerHTML = `${headHtml()}<div class="cqa-ws"><section class="cqa-hd" id="cqa-hd" aria-label="Сводка диалога"></section><section class="cqa-col cqa-q" aria-label="Очередь">${queueHtml()}</section><section class="cqa-col cqa-c" aria-label="Диалог"></section><section class="cqa-col cqa-e" aria-label="Оценка"></section></div>`;
+  main.innerHTML = `${headHtml()}<div class="cqa-ws"><section class="cqa-col cqa-q" aria-label="Очередь">${queueHtml()}</section><section class="cqa-col cqa-c" aria-label="Диалог"></section><section class="cqa-col cqa-e" aria-label="Оценка"></section></div>`;
   bindHead(); bindQueue(); bindColumns(); markQueue(); bindDrawer();
   await loadConversation(S.id);
   S.keys = (e) => {
