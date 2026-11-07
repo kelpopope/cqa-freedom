@@ -3,7 +3,7 @@
 import { api } from '../api.js';
 import { store, ROLES } from '../store.js';
 import { icon } from '../icons.js';
-import { esc, fmt2, fmtDuration, fmtTimestamp, fmtMoney, CHANNEL, LANG, GROSS, answerView, toast, debounce } from '../utils.js';
+import { esc, fmt2, fmtDuration, fmtTimestamp, fmtMoney, CHANNEL, LANG, GROSS, answerView, toast, debounce, turnNo, refs1 } from '../utils.js';
 import { deriveTimeline, deriveBotContext, markHold, withOffsets } from '../derive.js';
 import { countUp, growBars, openModal, relTime } from '../ui.js';
 import { refreshShell } from '../app.js';
@@ -25,6 +25,15 @@ function rowsOf(ev) {
     return ch ? { ...o, ...f, evidence: o.evidence, explanation: o.explanation, inline_note: o.inline_note, original: o, changed: ch } : o;
   });
 }
+// SLA первой реакции (3 мин): операционный показатель, в баллы не входит. Клик — к первому ответу оператора.
+function slaHtml(sla) {
+  if (!sla) return '';
+  const lim = fmtDuration(sla.threshold_sec);
+  if (sla.wait_sec == null) return `<span class="cqa-sla" title="Оператор не успел ответить: клиент ушёл раньше">Первый ответ: нет, SLA ${lim}</span>`;
+  const t = `Ожидание оператора после перевода чата, реплика #${turnNo(sla.first_reply_index)}. Порог первой реакции ${lim} — показатель SLA, в баллы не входит`;
+  return `<button type="button" class="cqa-sla ${sla.breached ? 'cqa-sla--bad' : 'cqa-sla--ok'}" data-goto="${sla.first_reply_index}" title="${esc(t)}">Первый ответ ${fmtDuration(sla.wait_sec)} ${sla.breached ? `· SLA ${lim} нарушен` : `· SLA ${lim}`}</button>`;
+}
+
 function metaMap(cl) { const m = new Map(); cl.criteria.forEach((c, i) => m.set(c.id, { ...c, num: pad2(i + 1) })); return m; }
 function totals(ev, cl) {
   const rows = rowsOf(ev); const meta = metaMap(cl);
@@ -125,7 +134,7 @@ function mapHtml(conv, ev, meta) {
     const next = tr[i + 1]?.offset_sec ?? dur;
     const w = Math.max(1, next - m.offset_sec);
     const cls = bad.has(m.index) ? 'bad' : m.on_hold ? 'hold' : m.speaker;
-    return `<span class="cqa-map__seg cqa-map__seg--${cls}" style="flex:${w} 1 0" data-goto="${m.index}" title="#${pad2(m.index)} ${esc((m.text || '').slice(0, 60))}"></span>`;
+    return `<span class="cqa-map__seg cqa-map__seg--${cls}" style="flex:${w} 1 0" data-goto="${m.index}" title="#${turnNo(m.index)} ${esc((m.text || '').slice(0, 60))}"></span>`;
   }).join('');
   const nBad = bad.size;
   return `<div class="cqa-map" aria-label="Карта разговора">
@@ -139,7 +148,7 @@ function msgHtml(m, conv, tags, isCall, hit) {
   const name = m.speaker === 'operator' ? `${conv.operator_name || 'Оператор'}, оператор` : m.speaker === 'bot' ? 'Бот AIM' : 'Клиент';
   const ts = isCall ? `<button type="button" class="cqa-seek" data-seek="${m.offset_sec}" title="Перейти к моменту записи">${esc(fmtTimestamp(m.timestamp))}</button>` : `<span>${esc(fmtTimestamp(m.timestamp))}</span>`;
   return `<div class="cqa-msg cqa-msg--${m.speaker} ${m.on_hold ? 'cqa-msg--hold' : ''} ${hit ? 'is-hit' : ''}" id="msg-${m.index}" data-msg="${m.index}">
-    <span class="cqa-msg__num">${pad2(m.index)}</span>
+    <span class="cqa-msg__num">${turnNo(m.index)}</span>
     <div><div class="cqa-msg__bub"><div class="cqa-msg__h"><b>${esc(name)}</b>${ts}</div>${m.on_hold ? '<div class="cqa-msg__hold">На удержании: клиент этого не слышит, в оценку не входит</div>' : ''}<div class="cqa-msg__t">${esc(m.text)}</div></div>
     ${tags.length ? `<div class="cqa-msg__tags">${tags.map((t) => `<button type="button" class="cqa-tag ${t.cls === 'mid' ? 'cqa-tag--mid' : ''}" data-crit-open="${t.id}">${t.num} ${esc(t.short)}</button>`).join('')}</div>` : ''}</div>
   </div>`;
@@ -165,7 +174,7 @@ function threadHtml(conv, ev, meta) {
   const post = firstOp > 0 ? conv.transcript.slice(firstOp) : conv.transcript;
   const bc = deriveBotContext(conv.transcript);
   const preHasHits = pre.some((m) => hits.has(m.index));
-  const one = (m) => msgHtml(m, conv, tagsBy.get(m.index) || [], isCall, hits.has(m.index)) + (notes.has(m.index) ? `<div class="cqa-inline ${notes.get(m.index).kind === 'expected' ? 'cqa-inline--expected' : ''}">${icon('info', 'cqa-ico--sm')}${esc(notes.get(m.index).text)}</div>` : '');
+  const one = (m) => msgHtml(m, conv, tagsBy.get(m.index) || [], isCall, hits.has(m.index)) + (notes.has(m.index) ? `<div class="cqa-inline ${notes.get(m.index).kind === 'expected' ? 'cqa-inline--expected' : ''}">${icon('info', 'cqa-ico--sm')}${esc(refs1(notes.get(m.index).text))}</div>` : '');
   return `
     <div class="cqa-day">Начало ${isCall ? 'звонка' : 'переписки'}</div>
     ${pre.length ? `<div class="cqa-botctx"><b>${bc.client.length ? 'Клиент написал боту:' : 'Переписка с ботом'}</b>${bc.client.map((m) => `<div class="cqa-botctx__q">«${esc(m.text)}»</div>`).join('')}
@@ -180,7 +189,7 @@ function playerHtml(conv, ev, meta) {
   const demo = String(conv.audio_url || '').startsWith('demo://');
   return `<div class="cqa-player">
     <button type="button" class="cqa-btn cqa-btn--icon cqa-btn--sm" id="cqa-play" aria-label="Воспроизвести">${icon('play', 'cqa-ico--sm')}</button>
-    <div class="cqa-player__track" id="cqa-track" role="slider" aria-label="Позиция записи" aria-valuemin="0" aria-valuemax="${dur}" tabindex="0"><div class="cqa-player__rail"><i class="cqa-player__fill" id="cqa-fill"></i></div>${bad.map((m) => `<span class="cqa-player__tick" style="left:${dur ? (m.offset_sec / dur) * 100 : 0}%" title="Реплика #${pad2(m.index)}"></span>`).join('')}</div>
+    <div class="cqa-player__track" id="cqa-track" role="slider" aria-label="Позиция записи" aria-valuemin="0" aria-valuemax="${dur}" tabindex="0"><div class="cqa-player__rail"><i class="cqa-player__fill" id="cqa-fill"></i></div>${bad.map((m) => `<span class="cqa-player__tick" style="left:${dur ? (m.offset_sec / dur) * 100 : 0}%" title="Реплика #${turnNo(m.index)}"></span>`).join('')}</div>
     <span class="cqa-player__time" id="cqa-time">0:00 / ${fmtDuration(dur)}</span>
     ${demo ? '<span class="cqa-badge" title="В демо-данных нет аудиофайла, позиция идёт по таймкодам">Демо без звука</span>' : `<audio id="cqa-audio" preload="metadata" src="${esc(conv.audio_url)}"></audio>`}
   </div>`;
@@ -235,6 +244,7 @@ function chatHtml(conv, ev, meta, ids) {
         <span>${icon(isCall ? 'phone' : 'chat', 'cqa-ico--sm')}${esc(CHANNEL[conv.channel] || conv.channel)}</span>
         <span>${icon('globe', 'cqa-ico--sm')}${esc(LANG[conv.language] || conv.language)}</span>
         <span>${icon('clock', 'cqa-ico--sm')}${fmtDuration(conv.transcript.at(-1)?.offset_sec)}</span>
+        ${slaHtml(S.data?.sla)}
       </div>
       ${ev?.headline ? `<div class="cqa-c__headline">${esc(ev.headline)}</div>` : ''}
     </div>
@@ -273,20 +283,20 @@ function critHtml(c, r, open) {
   else if (ap?.status === 'resolved') act = `<span class="cqa-badge cqa-badge--ok">${ap.decision.action === 'change' ? 'Изменено по апелляции' : 'Апелляция отклонена'}</span>`;
   else if (rl === 'operator') act = `<button type="button" class="cqa-link" data-appeal="${c.id}">Оспорить оценку</button>`;
   else if (rl === 'qa') act = `<button type="button" class="cqa-link" data-override="${c.id}">Изменить</button>`;
-  const evs = (r.evidence || []).map((e) => `<button type="button" class="cqa-ev ${r.evidence_valid === false ? 'cqa-ev--invalid' : ''}" data-goto="${e.index}"><span class="cqa-ev__idx">#${pad2(e.index)}</span><span class="cqa-ev__q">${esc(e.quote || '')}</span></button>`).join('');
-  const range = r.expected_range ? `<div class="cqa-cr__meta">${icon('target', 'cqa-ico--sm')}<span>Ожидалось ${r.expected_range.from === r.expected_range.to ? `в реплике #${pad2(r.expected_range.from)}` : `между #${pad2(r.expected_range.from)} и #${pad2(r.expected_range.to)}`}</span><button type="button" class="cqa-link cqa-link--accent" data-range="${r.expected_range.from}-${r.expected_range.to}">Показать</button></div>` : '';
+  const evs = (r.evidence || []).map((e) => `<button type="button" class="cqa-ev ${r.evidence_valid === false ? 'cqa-ev--invalid' : ''}" data-goto="${e.index}"><span class="cqa-ev__idx">#${turnNo(e.index)}</span><span class="cqa-ev__q">${esc(e.quote || '')}</span></button>`).join('');
+  const range = r.expected_range ? `<div class="cqa-cr__meta">${icon('target', 'cqa-ico--sm')}<span>Ожидалось ${r.expected_range.from === r.expected_range.to ? `в реплике #${turnNo(r.expected_range.from)}` : `между #${turnNo(r.expected_range.from)} и #${turnNo(r.expected_range.to)}`}</span><button type="button" class="cqa-link cqa-link--accent" data-range="${r.expected_range.from}-${r.expected_range.to}">Показать</button></div>` : '';
   const changed = r.changed ? `<div class="cqa-alert cqa-alert--ok">${icon('edit', 'cqa-ico--sm')}<div><b>Изменено проверяющим</b><span class="cqa-alert__text">Было: ${esc(answerView(c, r.original.answer).label)}. Стало: ${esc(answerView(c, r.answer).label)}</span></div></div>` : '';
   return `
     <div class="cqa-cr cqa-cr--${cls} ${r.changed ? 'cqa-cr--changed' : ''} ${open ? 'is-open' : ''}" data-crit="${c.id}">
       <button type="button" class="cqa-cr__row" aria-expanded="${open}"><span class="cqa-cr__n">${c.num}</span><span class="cqa-cr__t" title="${esc(c.title)}">${esc(c.title)}</span><span class="cqa-cr__p">${p}</span><span class="cqa-cr__chev">${icon('down', 'cqa-ico--sm')}</span></button>
-      ${r.answer === 'na' && !open ? `<div class="cqa-cr__na">${esc(r.na_reason || '')}</div>` : ''}
+      ${r.answer === 'na' && !open ? `<div class="cqa-cr__na">${esc(refs1(r.na_reason || ''))}</div>` : ''}
       <div class="cqa-cr__wrap"><div><div class="cqa-cr__body">
         <div class="cqa-cr__verdict cqa-cr__verdict--${vc}">${icon(vc === 'yes' ? 'check' : vc === 'na' ? 'info' : 'alert', 'cqa-ico--sm')}${esc(vt)}</div>
         ${changed}
-        <p class="cqa-cr__expl">${esc(r.answer === 'na' ? r.na_reason : r.explanation || '')}</p>
+        <p class="cqa-cr__expl">${esc(refs1(r.answer === 'na' ? r.na_reason : r.explanation || ''))}</p>
         ${evs ? `<div class="cqa-cr__label">Доказательство</div><div class="cqa-evs">${evs}</div>` : ''}
         ${range}
-        <div class="cqa-cr__meta"><span>Уверенность AI</span><span class="cqa-conf ${r.confidence === 'low' ? 'cqa-conf--low' : ''}">${r.confidence === 'low' ? 'низкая' : 'высокая'}</span>${r.uncertainty_reason ? `<span class="cqa-faint">${esc(r.uncertainty_reason)}</span>` : ''}${r.evidence_valid === false ? '<span class="cqa-faint">цитата не найдена в реплике</span>' : ''}</div>
+        <div class="cqa-cr__meta"><span>Уверенность AI</span><span class="cqa-conf ${r.confidence === 'low' ? 'cqa-conf--low' : ''}">${r.confidence === 'low' ? 'низкая' : 'высокая'}</span>${r.uncertainty_reason ? `<span class="cqa-faint">${esc(refs1(r.uncertainty_reason))}</span>` : ''}${r.evidence_valid === false ? '<span class="cqa-faint">цитата не найдена в реплике</span>' : ''}</div>
         <div class="cqa-cr__foot"><span>${esc(mathText(c, r))}</span><span class="cqa-push">${act}</span></div>
       </div></div></div>
     </div>`;
@@ -326,7 +336,7 @@ function evalHtml(conv, ev, cl) {
   const rep = ev.reproducibility;
   const grossTxt = (g?.types || []).map((t) => GROSS[t] || t).join(', ').toLowerCase() || 'выявлено';
   const flags = [
-    g?.flag ? `<li class="cqa-flag cqa-flag--bad">${icon('alert', 'cqa-ico--sm')}<span><b>Грубое нарушение:</b> ${esc(grossTxt)}. Не влияет на балл${g.evidence?.[0] ? `, <button type="button" class="cqa-link" data-goto="${g.evidence[0].index}">реплика #${pad2(g.evidence[0].index)}</button>` : ''}</span></li>` : '',
+    g?.flag ? `<li class="cqa-flag cqa-flag--bad">${icon('alert', 'cqa-ico--sm')}<span><b>Грубое нарушение:</b> ${esc(grossTxt)}. Не влияет на балл${g.evidence?.[0] ? `, <button type="button" class="cqa-link" data-goto="${g.evidence[0].index}">реплика #${turnNo(g.evidence[0].index)}</button>` : ''}</span></li>` : '',
     low.length ? `<li class="cqa-flag cqa-flag--warn">${icon('info', 'cqa-ico--sm')}<span><b>Проверьте вручную:</b> низкая уверенность модели, ${low.map((c) => esc(c.title.toLowerCase())).join(', ')}</span></li>` : '',
     openAp.length ? `<li class="cqa-flag cqa-flag--ok">${icon('scale', 'cqa-ico--sm')}<span><b>Апелляция оператора:</b> ${openAp.map((a) => esc((meta.get(a.criterion_id)?.title || '').toLowerCase())).join(', ')}${rl === 'qa' ? `, <a href="#/appeals/${openAp[0].appeal_id}">рассмотреть</a>` : ''}</span></li>` : '',
   ].join('');
@@ -338,7 +348,7 @@ function evalHtml(conv, ev, cl) {
       <div class="cqa-score__num"><b id="cqa-total" data-v="${T.total ?? ''}">${T.total == null ? '—' : fmt2(T.total)}</b><span>/ 100</span><span class="cqa-badge cqa-badge--${tone[0]}">${tone[1]}</span></div>
       <div class="cqa-bar" role="img" aria-label="Вклад критериев в итог: ${pts(T.raw)} из ${pts(T.W)}" title="Ширина отрезка — вес критерия, заливка — набранные баллы${T.na.length ? ', пунктир — N/A' : ''}">${segs}</div>
       <div class="cqa-score__raw">${T.total == null ? 'Нет применимых критериев с весом: итог не рассчитывается' : `${pts(T.raw)} из ${pts(T.W)} возможных баллов${T.na.length ? `, N/A: ${T.na.map((c) => c.title.toLowerCase()).join(', ')}` : ''}`}${changed ? `<br>После решения проверяющего: <s>${fmt2(ev.total)}</s> → <b>${fmt2(ev.final.total)}</b>` : ''}</div>
-      ${ev.summary ? `<p class="cqa-summary ${longSummary ? 'is-clamped' : ''}" id="cqa-summary">${esc(ev.summary)}</p>${longSummary ? '<button type="button" class="cqa-link cqa-link--accent" id="cqa-summary-more" aria-controls="cqa-summary" aria-expanded="false">Читать полностью</button>' : ''}` : ''}
+      ${ev.summary ? `<p class="cqa-summary ${longSummary ? 'is-clamped' : ''}" id="cqa-summary">${esc(refs1(ev.summary))}</p>${longSummary ? '<button type="button" class="cqa-link cqa-link--accent" id="cqa-summary-more" aria-controls="cqa-summary" aria-expanded="false">Читать полностью</button>' : ''}` : ''}
       ${flags ? `<ul class="cqa-flags">${flags}</ul>` : ''}
     </div>
       <div class="cqa-crit-h"><h2>Критерии оценки</h2><span>${esc(cl.name)}, версия ${ev.checklist_version}</span></div>
@@ -531,7 +541,7 @@ async function loadConversation(id, { keepScroll = false } = {}) {
   const conv = { ...data.conversation, transcript: withOffsets(markHold(data.conversation.transcript)) };
   const checklist = await api.getChecklist(data.evaluation?.checklist_id || 'default', data.evaluation?.checklist_version);
   if (seq !== S.loadSeq) return;
-  S.data = { conversation: conv, evaluation: data.evaluation, appeals: data.appeals || [], checklist };
+  S.data = { conversation: conv, evaluation: data.evaluation, appeals: data.appeals || [], checklist, sla: data.sla || null };
   if (!keepScroll) S.active = null;
   const meta = metaMap(checklist);
   const ids = filtered().map((x) => x.conversation_id);

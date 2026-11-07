@@ -79,7 +79,9 @@ export function openPopover(anchor, items, onPick, { align = 'left', up = false 
 
 export function relTime(iso) {
   if (!iso) return '';
-  const d = new Date(iso); const now = new Date();
+  // Время без пояса (SQLite datetime('now')) — это UTC; ISO с поясом разбирается как есть.
+  const s = String(iso);
+  const d = new Date(/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(s) ? `${s.replace(' ', 'T')}Z` : s); const now = new Date();
   const mins = Math.round((now - d) / 60000);
   if (mins < 1) return 'только что';
   if (mins < 60) return `${mins} мин назад`;

@@ -75,3 +75,11 @@
 - `strengths` — критерии, выполненные в этой реплике.
 - У каждого критерия: `issue_turns` — номера реплик, где он отмечен (для подсветки в транскрипте и перехода по клику).
 - Идея для UI: под репликой оператора — `note` серым и красные чипы `issues` с подсказкой `note`; зелёные чипы `strengths`.
+
+## SLA первой реакции и точность (для экрана «Обзор»)
+- `GET /api/conversations/{id}` → `sla`: `{threshold_sec: 180, escalation_index, first_reply_index, wait_sec, breached}` или `null` (звонок / нет перевода на оператора). `wait_sec: null` — клиент ушёл до ответа оператора.
+- `GET /api/conversations` → у каждого элемента `sla: {wait_sec, breached}` или `null`.
+- `GET /api/stats` → `sla: {threshold_sec, measured, breached, avg_wait_sec, max_wait_sec}`.
+- `GET /api/metrics/accuracy?group_id=DEV` → совпадение с ручной разметкой (`overall`, `overall_confident`, `per_criterion`, `kappa`, `gross`, `total_mae`, `per_language`); для набора без разметки — 404.
+- `GET /api/checklists/default/versions` — все версии чек-листа (экран «Чек-лист» берёт список версий отсюда).
+- Номера реплик в интерфейсе — с 1 (`index + 1`), как `evidence_turns` в results.json; якоря `#msg-{index}` остаются с 0.

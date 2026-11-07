@@ -10,6 +10,7 @@ from typing import Any
 
 from .. import db
 from . import checklists as checklist_store
+from . import sla
 
 
 def _latest_by_conversation(checklist_id: str, version: int | None = None,
@@ -188,6 +189,7 @@ def stats(group_id: str | None = None, checklist_id: str = "default") -> dict[st
                     "high": sum(t >= 85 for t in totals)},
         "by_language": by_lang,
         "criteria": criteria,
+        "sla": sla.summarize([i["sla"] for i in items]),
         "risky": [{"conversation_id": i["conversation_id"], "operator_name": i["operator_name"],
                    "total": i["evaluation"]["final_total"], "gross_types": i["evaluation"]["gross_types"],
                    "headline": i["evaluation"]["headline"]} for i in gross_items],

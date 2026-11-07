@@ -6,6 +6,7 @@ import uuid
 from typing import Any
 
 from .. import db
+from . import sla
 from .fetcher import normalize_conversation
 
 
@@ -55,6 +56,10 @@ def appeals_for(evaluation_id: str) -> list[dict[str, Any]]:
         rows = conn.execute("SELECT data FROM appeals WHERE evaluation_id=? ORDER BY created_at, rowid",
                             (evaluation_id,)).fetchall()
     return [db.loads(r["data"]) for r in rows]
+
+
+def _sla_brief(r: dict[str, Any] | None) -> dict[str, Any] | None:
+    return {"wait_sec": r["wait_sec"], "breached": r["breached"]} if r else None
 
 
 def _natural_key(cid: str):
@@ -138,6 +143,7 @@ def list_items(group_id: str | None = None, language: str | None = None, channel
             "turns": len(c["transcript"]),
             "duration_sec": next((t["offset_sec"] for t in reversed(c["transcript"]) if t.get("offset_sec") is not None), 0),
             "operator_name": c.get("operator_name"),
+            "sla": _sla_brief(sla.first_response(c)),
             "evaluation": summary,
             "appeal_status": appeal_status.get(summary["evaluation_id"]) if summary else None,
         })

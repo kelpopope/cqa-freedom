@@ -75,7 +75,7 @@ def _clamp_range(rng: dict[str, Any] | None, n: int) -> dict[str, int] | None:
 
 
 # --- лента событий и контекст бота (базовая версия; правила — в rules.py) ----------------------------
-_ESCALATION = re.compile(r"эскалац|transferred to an agent|операторға жіберілді|присоединился к разговору", re.I)
+from .sla import ESCALATION as _ESCALATION  # noqa: E402
 _IDENTITY = re.compile(r"личность клиента подтверждена|identity verified|жеке басы расталды", re.I)
 _END = [
     ("operator_closed", re.compile(r"оператор закрыл чат|agent closed the chat|оператор чатты жапты", re.I)),

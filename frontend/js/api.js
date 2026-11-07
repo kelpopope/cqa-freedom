@@ -31,7 +31,7 @@ const liveApi = {
   importDataset: (group_id) => http('POST', '/datasets/import', { group_id }),
   listConversations: (params) => http('GET', `/conversations${qs(withGroup(params))}`),
   getConversation: (id) => http('GET', `/conversations/${encodeURIComponent(id)}`),
-  listChecklists: () => http('GET', '/checklists'),
+  listChecklists: (id = 'default') => http('GET', `/checklists/${id}/versions`),
   getChecklist: (id = 'default', version) => http('GET', `/checklists/${id}${qs({ version })}`),
   saveChecklist: (cl) => http('PUT', `/checklists/${cl.checklist_id}`, cl),
   evaluate: (conversation_id, { checklistId = 'default' } = {}) => http('POST', '/evaluate', { conversation_id, checklist_id: checklistId }),
@@ -45,6 +45,7 @@ const liveApi = {
   overrideCriterion: (body) => http('POST', '/appeals/override', body),
   compare: (params) => http('GET', `/evaluations/compare${qs({ checklist_id: 'default', ...withGroup(params) })}`),
   stats: (params) => http('GET', `/stats${qs(withGroup(params))}`),
+  accuracy: (params) => http('GET', `/metrics/accuracy${qs(withGroup(params))}`),
 };
 
 export const api = CONFIG.useMocks ? mockApi : liveApi;

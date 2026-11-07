@@ -2,13 +2,41 @@
 import { api } from '../api.js';
 import { store } from '../store.js';
 import { icon } from '../icons.js';
-import { esc, fmt2, GROSS, LANG } from '../utils.js';
+import { esc, fmt2, fmtDuration, GROSS, LANG } from '../utils.js';
 import { countUp, growBars } from '../ui.js';
 
 const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
+const pct1 = (x) => `${(x * 100).toLocaleString('ru-RU', { maximumFractionDigits: 1 })} %`;
+
+// Сверка с ручной разметкой (GET /api/metrics/accuracy). Эталон есть только у DEV — для других наборов блока нет.
+function calibration(acc, s) {
+  if (!acc || !acc.labeled) return '';
+  const titles = new Map(s.criteria.map((c) => [c.criterion_id, c.title]));
+  const crit = Object.entries(acc.per_criterion || {});
+  const g = acc.gross || {};
+  const stat = (v, label, hint) => `<div class="cqa-calib__stat"><b class="cqa-num">${v}</b><span>${label}</span><small>${hint}</small></div>`;
+  return `
+    <section class="cqa-card" style="margin-top:14px">
+      <div class="cqa-card__head"><h2>Точность AI-оценки</h2><span class="cqa-faint" style="margin-left:auto;font-size:13px">сверка с ручной разметкой команды, ${acc.labeled} диалогов ${esc(acc.group_id)}</span></div>
+      <div class="cqa-card__body cqa-calib">
+        <div class="cqa-calib__stats">
+          ${stat(pct1(acc.overall), 'Совпадение ответов', `${acc.labeled * crit.length} ответов по ${crit.length} критериям`)}
+          ${acc.overall_confident != null ? stat(pct1(acc.overall_confident), 'В однозначных случаях', 'без спорных случаев, помеченных при разметке') : ''}
+          ${acc.kappa != null ? stat(acc.kappa.toLocaleString('ru-RU', { maximumFractionDigits: 2 }), 'Согласие, каппа Коэна', 'выше 0,8 — почти полное согласие') : ''}
+          ${g.tp != null ? stat(`${g.tp} из ${g.tp + g.fn}`, 'Грубые нарушения найдены', `ложных срабатываний: ${g.fp}`) : ''}
+          ${acc.total_mae != null ? stat(`±${fmt2(acc.total_mae)}`, 'Отклонение итога', 'баллов в среднем от эталона') : ''}
+          ${acc.per_language ? stat(Object.entries(acc.per_language).map(([l, v]) => `${l} ${Math.round(v * 100)}`).join(' · '), 'Паритет языков', 'совпадение, %') : ''}
+        </div>
+        <div class="cqa-calib__rows">
+          ${crit.map(([id, v]) => `<div class="cqa-calib__row"><span>${esc(titles.get(id) || (id === 'c08' ? 'Грубые ошибки' : id))}</span><div class="cqa-langs__bar"><i data-w="${v * 100}%"></i></div><b class="cqa-num">${pct1(v)}</b></div>`).join('')}
+        </div>
+      </div>
+      <p class="cqa-faint" style="font-size:12px;padding:0 20px 16px">Эталон — ручная разметка DEV, спорные ответы помечены отдельно. Модель на этих ответах не обучалась: они служат проверкой здравого смысла. Пересчитывается по последним оценкам.</p>
+    </section>`;
+}
 
 export async function render(main) {
-  const s = await api.stats();
+  const [s, acc] = await Promise.all([api.stats(), api.accuracy ? api.accuracy().catch(() => null) : null]);
   const worst = s.criteria.filter((c) => c.applicable).slice(0, 6);
   const maxRate = Math.max(0.01, ...worst.map((c) => c.fail_rate));
   const B = s.buckets; const nb = B.low + B.mid + B.high || 1;
@@ -43,6 +71,7 @@ export async function render(main) {
             ${s.by_language.filter((l) => l.n).map((l) => `<div class="cqa-langs__row"><span>${esc(LANG[l.language] || l.language)}</span><div class="cqa-langs__bar"><i data-w="${l.avg ?? 0}%"></i></div><b class="cqa-num" style="text-align:right">${fmt2(l.avg)}</b></div>`).join('')}
           </div>
           <p class="cqa-faint" style="font-size:12px;margin-top:10px">Средний балл по языку диалога: один чек-лист для RU, KZ и EN</p>
+          ${s.sla?.measured ? `<div class="cqa-sla-sum"><div><b class="cqa-num ${s.sla.breached ? 'cqa-bad-text' : ''}">${s.sla.breached} из ${s.sla.measured}</b><span>нарушений SLA первой реакции (${fmtDuration(s.sla.threshold_sec)})</span></div><div><b class="cqa-num">${fmtDuration(s.sla.avg_wait_sec)}</b><span>в среднем до ответа оператора, максимум ${fmtDuration(s.sla.max_wait_sec)}</span></div></div>` : ''}
         </div>
       </section>
     </div>
@@ -52,7 +81,7 @@ export async function render(main) {
       <div class="cqa-risk-list">
         ${s.risky.length ? s.risky.map((r) => `<a class="cqa-risk-row" href="#/dialogs/${encodeURIComponent(r.conversation_id)}"><div><b>${esc(r.conversation_id)}</b><small>${esc(r.headline || '')}</small></div><span class="cqa-badge cqa-badge--bad">${esc((r.gross_types || []).map((t) => GROSS[t] || t).join(', ') || 'Нарушение')}</span><span class="cqa-num" style="font-weight:600">${fmt2(r.total)}</span></a>`).join('') : '<div class="cqa-empty" style="padding:28px">Грубых нарушений нет</div>'}
       </div>
-    </section>`;
+    </section>${calibration(acc, s)}`;
 
   main.querySelectorAll('[data-count]').forEach((el) => { if (el.dataset.count !== '') countUp(el, Number(el.dataset.count), { decimals: el.dataset.dec === '0' ? 0 : 2 }); });
   growBars(main);

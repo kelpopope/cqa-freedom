@@ -234,3 +234,8 @@
   .cqa-acts { grid-template-columns: 1fr; }
 }
 @media (min-width: 1241px) { .cqa-q-toggle { display: none !important; } }
+
+.cqa-sla { display: inline-flex; align-items: center; padding: 1px 8px; border: 1px solid var(--cqa-line); border-radius: 999px; background: transparent; color: var(--cqa-text-2); font: inherit; font-size: var(--cqa-fs-xs); font-variant-numeric: tabular-nums; cursor: default; }
+button.cqa-sla { cursor: pointer; }
+button.cqa-sla:hover { background: var(--cqa-surface-2); }
+.cqa-sla--bad { border-color: var(--cqa-bad); color: var(--cqa-bad); }

@@ -2,7 +2,7 @@
 import { api } from '../api.js';
 import { store, ROLES } from '../store.js';
 import { icon } from '../icons.js';
-import { esc, fmt2, fmtTimestamp, answerView, toast } from '../utils.js';
+import { esc, fmt2, fmtTimestamp, answerView, toast, turnNo, refs1 } from '../utils.js';
 import { relTime } from '../ui.js';
 import { refreshShell } from '../app.js';
 
@@ -45,7 +45,7 @@ function ctxHtml(a) {
   return a.context.map((m) => {
     const hit = (a.criterion_result?.evidence || []).some((e) => e.index === m.index);
     if (m.speaker === 'system') return `<div class="cqa-sys" style="margin-left:0">${esc(fmtTimestamp(m.timestamp))}, ${esc(m.text.toLowerCase())}</div>`;
-    return `<div class="cqa-msg cqa-msg--${m.speaker} ${hit ? 'is-hit' : ''}"><span class="cqa-msg__num">${pad2(m.index)}</span><div class="cqa-msg__bub"><div class="cqa-msg__h"><b>${m.speaker === 'operator' ? `${esc(a.conversation.operator_name || 'Оператор')}, оператор` : m.speaker === 'bot' ? 'Бот' : 'Клиент'}</b><span>${esc(fmtTimestamp(m.timestamp))}</span></div><div class="cqa-msg__t">${esc(m.text)}</div></div></div>`;
+    return `<div class="cqa-msg cqa-msg--${m.speaker} ${hit ? 'is-hit' : ''}"><span class="cqa-msg__num">${turnNo(m.index)}</span><div class="cqa-msg__bub"><div class="cqa-msg__h"><b>${m.speaker === 'operator' ? `${esc(a.conversation.operator_name || 'Оператор')}, оператор` : m.speaker === 'bot' ? 'Бот' : 'Клиент'}</b><span>${esc(fmtTimestamp(m.timestamp))}</span></div><div class="cqa-msg__t">${esc(m.text)}</div></div></div>`;
   }).join('');
 }
 
@@ -81,7 +81,7 @@ async function detailHtml(a) {
         <div class="cqa-ap__cell ${d ? 'cqa-ap__cell--new' : ''}"><small>Итог после решения</small><b>${d ? fmt2(d.new_total) : '—'}</b></div>
       </div>
       <div><div class="cqa-cr__label" style="margin-bottom:6px">Комментарий оператора</div><div class="cqa-quote">«${esc(a.comment)}»${a.proposed_answer != null ? `<small style="margin:6px 0 0">Предлагает ответ: <b>${esc(answerView(c, a.proposed_answer).label)}</b></small>` : ''}</div></div>
-      <div><div class="cqa-cr__label" style="margin-bottom:6px">Обоснование AI</div><p style="line-height:1.6">${esc(r.explanation || r.na_reason || '')}</p></div>
+      <div><div class="cqa-cr__label" style="margin-bottom:6px">Обоснование AI</div><p style="line-height:1.6">${esc(refs1(r.explanation || r.na_reason || ''))}</p></div>
       <div><div class="cqa-cr__label" style="margin-bottom:6px">Фрагмент диалога</div><div class="cqa-ctx">${ctxHtml(a)}</div></div>
       ${canDecide ? `
       <form class="cqa-card" id="cqa-decide" style="padding:16px 18px;display:flex;flex-direction:column;gap:14px">

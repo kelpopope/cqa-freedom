@@ -2,7 +2,7 @@
 import { api } from '../api.js';
 import { store } from '../store.js';
 import { icon } from '../icons.js';
-import { esc, fmt2, toast } from '../utils.js';
+import { esc, fmt2, fmtMoney, toast } from '../utils.js';
 import { openModal, relTime } from '../ui.js';
 import { refreshShell } from '../app.js';
 
@@ -77,12 +77,27 @@ function sideHtml() {
     ${S.diff ? diffHtml() : ''}`;
 }
 
+// Почему изменился итог: ответы по критериям (Да → Нет) или только веса/состав чек-листа.
+function whyHtml(r) {
+  const to = new Map((S.active?.criteria || []).map((c) => [c.id, c]));
+  const from = new Map((S.diff.prev?.criteria || []).map((c) => [c.id, c]));
+  const ans = (c, a) => (!c ? String(a) : a === 'na' ? 'N/A' : c.type === 'scale' ? String(a) : a === 'yes' ? 'Да' : 'Нет');
+  const parts = (r.changes || []).map((ch) => { const c = to.get(ch.criterion_id) || from.get(ch.criterion_id); return `${esc(c?.title || ch.criterion_id)}: ${ans(c, ch.from)} → ${ans(c, ch.to)}`; });
+  Object.keys(r.added || {}).forEach((id) => parts.push(`новый критерий «${esc(to.get(id)?.title || id)}»: ${ans(to.get(id), r.added[id])}`));
+  Object.keys(r.removed || {}).forEach((id) => parts.push(`удалён «${esc(from.get(id)?.title || id)}»`));
+  if (!parts.length && r.from_total !== r.to_total) {
+    const w = [...to.values()].filter((c) => from.has(c.id) && (from.get(c.id).weight || 0) !== (c.weight || 0)).map((c) => `${esc(c.title)} ${from.get(c.id).weight}→${c.weight}`);
+    parts.push(w.length ? `ответы те же, изменились веса: ${w.join(', ')}` : 'ответы те же, изменились веса');
+  }
+  return parts.length ? `<div class="cqa-diff__why">${parts.join('; ')}</div>` : '';
+}
+
 function diffHtml() {
   const rows = S.diff.rows.filter((r) => r.from_total !== r.to_total || r.changed_criteria.length);
   return `<section class="cqa-card cqa-enter"><div class="cqa-card__head"><h3>Было → стало</h3><span class="cqa-faint" style="margin-left:auto;font-size:12px">версия ${S.diff.from} → ${S.diff.to}</span></div>
     <div class="cqa-card__body" style="padding-top:6px">${rows.length ? `<table class="cqa-diff"><thead><tr><th>Диалог</th><th class="r">Было</th><th class="r">Стало</th></tr></thead><tbody>${rows.map((r) => {
       const d = (r.to_total ?? 0) - (r.from_total ?? 0);
-      return `<tr><td><a href="#/dialogs/${encodeURIComponent(r.conversation_id)}">${esc(r.conversation_id)}</a></td><td class="r">${fmt2(r.from_total)}</td><td class="r">${fmt2(r.to_total)} <span class="${d > 0 ? 'cqa-delta--up' : d < 0 ? 'cqa-delta--down' : 'cqa-faint'}">${d > 0 ? '+' : ''}${d ? fmt2(d) : '0'}</span></td></tr>`;
+      return `<tr><td><a href="#/dialogs/${encodeURIComponent(r.conversation_id)}">${esc(r.conversation_id)}</a>${whyHtml(r)}</td><td class="r">${fmt2(r.from_total)}</td><td class="r">${fmt2(r.to_total)} <span class="${d > 0 ? 'cqa-delta--up' : d < 0 ? 'cqa-delta--down' : 'cqa-faint'}">${d > 0 ? '+' : ''}${d ? fmt2(d) : '0'}</span></td></tr>`;
     }).join('')}</tbody></table>` : '<p class="cqa-muted">Итоги не изменились</p>'}
     <p class="cqa-faint" style="font-size:12px;margin-top:10px">Изменились итоги у ${rows.length} из ${S.diff.rows.length} диалогов</p></div></section>`;
 }
@@ -128,6 +143,7 @@ function bind() {
     } else if (f === 'section_id') { c.section_id = e.target.value; draw(); return; }
     else c[f] = e.target.value;
     if (f === 'title') e.target.closest('[data-cid]').querySelector('.cqa-ce__t').textContent = e.target.value || 'Новый критерий';
+    if (f === 'weight') e.target.closest('[data-cid]').querySelector('.cqa-ce__w').innerHTML = `${c.weight || 0} <small>вес</small>`;
     drawSide();
   };
   list.addEventListener('input', onField);
@@ -148,17 +164,20 @@ function bind() {
 
 async function save() {
   if (problems().length) { toast('Сначала исправьте замечания справа', 'bad'); return; }
-  const from = S.active.version;
+  const from = S.active.version; const prev = S.active;
   const body = clone(S.draft); body.criteria.forEach((c) => delete c._new);
-  const saved = await api.saveChecklist(body);
+  let saved;
+  try { saved = await api.saveChecklist(body); } catch (err) { toast(err.message, 'bad'); return; }
   S.active = saved; S.draft = clone(saved); S.versions = await api.listChecklists();
   S.open.clear();
   S.main.querySelector('#cqa-cl-ver').textContent = `Версия ${saved.version}, активна`;
   draw();
   toast(`Сохранена версия ${saved.version}`);
+  const n = (await api.listConversations().catch(() => [])).length;
+  const word = n % 10 === 1 && n % 100 !== 11 ? 'диалог' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'диалога' : 'диалогов';
   const m = openModal({
     title: `Применить версию ${saved.version} к диалогам?`,
-    sub: 'Все диалоги набора будут переоценены по новому чек-листу. Покажем, как изменились итоги',
+    sub: `Будет переоценено ${n} ${word} набора ${store.get().groupId} по новому чек-листу: около ${Math.max(1, Math.round(n / 6 * 0.4))} мин, ≈ ${fmtMoney(n * 0.06)}. Покажем, как изменились итоги и почему`,
     foot: '<button type="button" class="cqa-btn" data-close>Позже</button><button type="button" class="cqa-btn cqa-btn--primary" id="cqa-apply">Переоценить диалоги</button>',
   });
   m.el.querySelector('#cqa-apply').addEventListener('click', async (e) => {
@@ -166,7 +185,7 @@ async function save() {
     const list = await api.listConversations();
     const { job_id } = await api.evaluateBatch({ conversation_ids: list.map((x) => x.conversation_id) });
     await new Promise((res) => { const t = setInterval(async () => { const j = await api.getJob(job_id); b.innerHTML = `<span class="cqa-spin"></span>Оценено ${j.done} из ${j.total}`; if (j.status !== 'running') { clearInterval(t); res(); } }, 250); });
-    S.diff = { from, to: saved.version, rows: await api.compare({ from_version: from, to_version: saved.version }) };
+    S.diff = { from, to: saved.version, prev, rows: await api.compare({ from_version: from, to_version: saved.version }) };
     m.close(); drawSide(); refreshShell();
     toast('Диалоги переоценены по новой версии');
     S.main.querySelector('#cqa-cl-side').scrollIntoView({ behavior: 'smooth', block: 'start' });

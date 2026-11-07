@@ -58,6 +58,16 @@ app.include_router(evaluations.router)
 app.include_router(appeals.router)
 
 
+@app.middleware("http")
+async def no_stale_frontend(request: Request, call_next):
+    """ES-модули фронта браузер кэширует агрессивно: после обновления кода показывал бы старый интерфейс.
+    no-cache = браузер каждый раз сверяет ETag (304, если файл не менялся)."""
+    response = await call_next(request)
+    if not request.url.path.startswith("/api"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
 # --- Фронт (монтируется последним, чтобы не перекрывать /api) ----------------------------------
 if FRONTEND_DIR.is_dir():
     app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")

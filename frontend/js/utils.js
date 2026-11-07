@@ -74,3 +74,10 @@ export function toast(text, tone = 'ok') {
 
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+
+// Номера реплик для людей — с 1, как evidence_turns в results/*.json; внутренний индекс и якорь #msg-{index} — с 0.
+export const turnNo = (index) => String(Number(index) + 1).padStart(2, '0');
+
+// Ссылки в текстах модели («[#9]», «[#9, #11]», «[#12–14]») — в ту же нумерацию с 1 (как results_export.to_one_based_refs).
+export const refs1 = (text) => String(text ?? '').replace(/\[([^\]]*#\d[^\]]*)\]/g,
+  (_, inner) => `[${inner.replace(/(#?)(\d+)/g, (__, h, d) => `${h}${Number(d) + 1}`)}]`);
