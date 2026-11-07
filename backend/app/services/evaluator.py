@@ -14,7 +14,7 @@ from typing import Any
 
 from .. import db
 from . import checklists as checklist_store
-from . import rules
+from . import precedents, rules
 from . import conversations as conversation_store
 from .llm_client import LLMError, complete_json
 from .prompts import PROMPT_VERSION, build_prompt, build_response_schema
@@ -455,7 +455,10 @@ def evaluate(conversation_id: str, checklist_id: str = "default", version: int |
 
     turn_review = bool(s.get("turn_review", True))
     evaluation["model"]["turn_review"] = turn_review
-    messages = build_prompt(checklist, conversation, turn_review)
+    used = precedents.collect(checklist, exclude_conversation_id=conversation_id) if s.get("use_precedents", True) else {}
+    evaluation["model"]["precedents"] = [p["appeal_id"] for items in used.values() for p in items]
+    evaluation["model"]["knowledge_base"] = bool((checklist.get("knowledge_base") or "").strip())
+    messages = build_prompt(checklist, conversation, turn_review, used)
     schema = build_response_schema(checklist, turn_review)
     n = max(1, int(samples or s["self_consistency"]))
     evaluation["model"]["samples"] = n

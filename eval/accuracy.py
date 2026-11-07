@@ -72,6 +72,8 @@ def main():
     print("По критериям:  " + "  ".join(f"{k}={v}" for k, v in report["per_criterion"].items()))
     print("Без спорных:   " + "  ".join(f"{k}={v}" for k, v in report["per_criterion_confident"].items()))
     print("По языкам:     " + "  ".join(f"{k}={v}" for k, v in report["per_language"].items()))
+    print(f"Каппа Коэна: {report['kappa']}  по критериям: " + "  ".join(f"{k}={v}" for k, v in report["per_criterion_kappa"].items()))
+    print("Шкалы, ±1 ступень: " + "  ".join(f"{k}={v}" for k, v in report["scale_within_one_step"].items()))
     print("Доказательства:", report["evidence"])
     print("\nРасхождения (* — спорная ячейка эталона):")
     for m in sorted(report["mismatches"], key=lambda m: (m["criterion_id"], m["conversation_id"])):

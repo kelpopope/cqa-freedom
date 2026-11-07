@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 import json
-from collections import defaultdict
+from collections import Counter, defaultdict
 from typing import Any
 
 from .. import db
@@ -82,6 +82,27 @@ def evidence_report(evaluations: dict[str, dict], checklist: dict[str, Any]) -> 
             "consistent": r(n_issues - n_incons, n_issues)}
 
 
+def cohen_kappa(pairs: list[tuple[str, str]]) -> float | None:
+    """Каппа Коэна: согласие с поправкой на случайное (у нас большинство ответов «Да»/N/A — проценты завышены)."""
+    n = len(pairs)
+    if not n:
+        return None
+    po = sum(a == b for a, b in pairs) / n
+    ca, cb = Counter(a for a, _ in pairs), Counter(b for _, b in pairs)
+    pe = sum(ca[k] * cb[k] for k in set(ca) | set(cb)) / (n * n)
+    return round((po - pe) / (1 - pe), 4) if pe < 1 else 1.0
+
+
+def _adjacent(c: dict[str, Any], a: Any, b: Any) -> bool:
+    """Для шкалы — ответ совпал или отличается на одну ступень (организаторы смотрят на близость)."""
+    if a == b:
+        return True
+    if c["type"] != "scale" or "na" in (a, b):
+        return False
+    steps = sorted(s["value"] for s in c["scale"])
+    return abs(steps.index(a) - steps.index(b)) == 1
+
+
 def _language(cid: str, ev: dict | None) -> str:
     parts = cid.split("-")
     return parts[1].upper() if len(parts) > 2 else "?"
@@ -101,6 +122,8 @@ def compute(group_id: str = "DEV", evaluations: dict[str, dict] | None = None) -
     cells_conf = defaultdict(lambda: [0, 0])
     langs = defaultdict(lambda: [0, 0])
     mismatches, abs_err = [], []
+    pairs: dict[str, list] = defaultdict(list)
+    adjacent = defaultdict(lambda: [0, 0])
     tp = fp = fn = 0
     for cid, lab in labels.items():
         ev = evaluations.get(cid)
@@ -114,6 +137,9 @@ def compute(group_id: str = "DEV", evaluations: dict[str, dict] | None = None) -
             got = pred[k]
             hit = got == exp
             cells[k][0] += hit; cells[k][1] += 1
+            pairs[k].append((str(exp), str(got)))
+            if crit[k]["type"] == "scale":
+                adjacent[k][0] += _adjacent(crit[k], exp, got); adjacent[k][1] += 1
             langs[_language(cid, ev)][0] += hit; langs[_language(cid, ev)][1] += 1
             if k not in lab.get("uncertain", []):
                 cells_conf[k][0] += hit; cells_conf[k][1] += 1
@@ -141,6 +167,9 @@ def compute(group_id: str = "DEV", evaluations: dict[str, dict] | None = None) -
         "per_criterion": {k: ratio(v) for k, v in sorted(cells.items())},
         "per_criterion_confident": {k: ratio(v) for k, v in sorted(cells_conf.items())},
         "per_language": {k: ratio(v) for k, v in sorted(langs.items())},
+        "kappa": cohen_kappa([(k + a, k + b) for k, ps in pairs.items() for a, b in ps]),
+        "per_criterion_kappa": {k: cohen_kappa(ps) for k, ps in sorted(pairs.items())},
+        "scale_within_one_step": {k: ratio(v) for k, v in sorted(adjacent.items())},
         "total_mae": round(sum(abs_err) / len(abs_err), 2) if abs_err else None,
         "gross": {"tp": tp, "fp": fp, "fn": fn,
                   "precision": round(tp / (tp + fp), 4) if tp + fp else None,

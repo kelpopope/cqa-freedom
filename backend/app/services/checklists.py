@@ -115,6 +115,10 @@ def validate_checklist(data: dict[str, Any]) -> dict[str, Any]:
         })
     out["criteria"] = criteria
     out["notes"] = [_text(x) for x in (data.get("notes") or []) if _text(x)]
+    kb = data.get("knowledge_base")
+    if isinstance(kb, list):                       # допускаем список фактов
+        kb = "\n".join(f"- {_text(x)}" for x in kb if _text(x))
+    out["knowledge_base"] = _text(kb) or None
 
     if errors:
         raise ChecklistError("; ".join(errors))
@@ -198,12 +202,17 @@ def _carry_over_guidance(prev: dict[str, Any] | None, data: dict[str, Any]) -> d
     criteria = []
     for c in data["criteria"]:
         o = old.get(str(c.get("id", "")).strip()) if isinstance(c, dict) else None
+        if o and o.get("code") and "code" not in c:          # код критерия для официальной выгрузки
+            c = {**c, "code": o["code"]}
         if (o and o.get("guidance") and "guidance" not in c and o.get("type") == c.get("type")
                 and _text(o.get("title")) == _text(c.get("title"))
                 and _text(o.get("description")) == _text(c.get("description"))):
             c = {**c, "guidance": o["guidance"]}
         criteria.append(c)
-    return {**data, "criteria": criteria}
+    out = {**data, "criteria": criteria}
+    if "knowledge_base" not in data and prev.get("knowledge_base"):   # редактор UI не знает про базу знаний
+        out["knowledge_base"] = prev["knowledge_base"]
+    return out
 
 
 def update(checklist_id: str, data: dict[str, Any]) -> dict[str, Any] | None:

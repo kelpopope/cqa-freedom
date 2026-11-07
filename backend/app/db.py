@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import threading
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Iterator
@@ -72,20 +73,27 @@ def _db_path() -> Path:
     return get_settings().db_path
 
 
+# Все операции с SQLite в процессе идут по очереди: они короткие (миллисекунды), а долгие вызовы модели
+# выполняются вне соединения. Без этого параллельная пакетная оценка упиралась в блокировки файла БД.
+# Для продакшен-нагрузки хранилище меняется на PostgreSQL — интерфейс connect() остаётся тем же.
+_LOCK = threading.RLock()
+
+
 @contextmanager
 def connect(path: Path | None = None) -> Iterator[sqlite3.Connection]:
     """Короткоживущее соединение на операцию: безопасно для потоков FastAPI и фоновых задач."""
-    conn = sqlite3.connect(path or _db_path(), timeout=30)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-    try:
-        yield conn
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        conn.close()
+    with _LOCK:
+        conn = sqlite3.connect(path or _db_path(), timeout=30)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
 
 def dumps(obj: Any) -> str:

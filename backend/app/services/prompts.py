@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-PROMPT_VERSION = "p4.1"
+PROMPT_VERSION = "p5"
 
 GENERAL_RULES = """Ты — эксперт отдела контроля качества брокера Freedom Broker. Ты оцениваешь работу ОПЕРАТОРА поддержки в одном диалоге по чек-листу.
 
@@ -67,7 +67,14 @@ def _criterion_block(c: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def build_system_prompt(checklist: dict[str, Any], turn_review: bool = True) -> str:
+KNOWLEDGE_RULES = """Справочные факты компании (база знаний) — используй, чтобы проверить корректность консультации:
+- если совет оператора противоречит факту — это ошибка консультации (ключевая рекомендация ошибочна или неполна);
+- если нужного факта в базе нет — оценивай по логике диалога и не придумывай правил компании."""
+
+
+def build_system_prompt(checklist: dict[str, Any], turn_review: bool = True,
+                        precedents: dict[str, list[dict[str, Any]]] | None = None) -> str:
+    from .precedents import format_block
     parts = [GENERAL_RULES + (TURN_REVIEW_RULES if turn_review else ""), "", f"# Чек-лист «{checklist.get('name', '')}» (версия {checklist.get('version', '?')})"]
     sections = {s["id"]: s["title"] for s in checklist.get("sections") or []}
     current = object()
@@ -77,10 +84,16 @@ def build_system_prompt(checklist: dict[str, Any], turn_review: bool = True) -> 
             parts.append(f"\n## {sections[sid]}")
         current = sid
         parts.append(_criterion_block(c))
+        if precedents and precedents.get(c["id"]):
+            parts.append(format_block(precedents[c["id"]]))
     notes = checklist.get("notes") or []
     if notes:
         parts.append("\n# Общие правила чек-листа")
         parts.extend(f"- {n}" for n in notes)
+    kb = (checklist.get("knowledge_base") or "").strip()
+    if kb:
+        parts.append("\n# " + KNOWLEDGE_RULES)
+        parts.append(kb)
     return "\n".join(parts)
 
 
@@ -112,8 +125,9 @@ def build_user_prompt(conversation: dict[str, Any], turn_review: bool = True) ->
             f"язык: {conversation.get('language')}\n\n{format_transcript(conversation)}\n\n{tail}")
 
 
-def build_prompt(checklist: dict[str, Any], conversation: dict[str, Any], turn_review: bool = True) -> list[dict[str, str]]:
-    return [{"role": "system", "content": build_system_prompt(checklist, turn_review)},
+def build_prompt(checklist: dict[str, Any], conversation: dict[str, Any], turn_review: bool = True,
+                 precedents: dict[str, list[dict[str, Any]]] | None = None) -> list[dict[str, str]]:
+    return [{"role": "system", "content": build_system_prompt(checklist, turn_review, precedents)},
             {"role": "user", "content": build_user_prompt(conversation, turn_review)}]
 
 
