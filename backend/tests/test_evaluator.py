@@ -49,7 +49,7 @@ def client(monkeypatch, tmp_path):
 
 
 def fake_llm(payload, usage=None):
-    def _f(messages, schema, name="evaluation", reasoning_effort=None):
+    def _f(messages, schema, name="evaluation", reasoning_effort=None, model=None):
         _f.calls.append((messages, schema))
         return copy.deepcopy(payload), usage or {"input_tokens": 3000, "cached_tokens": 0, "output_tokens": 800,
                                                  "reasoning_tokens": 300, "cost_usd": 0.014, "duration_ms": 1000}
@@ -189,7 +189,7 @@ def test_vote_majority_median_and_low_confidence(default_checklist):
 def test_evaluate_with_samples_sums_usage_and_reports_votes(client, monkeypatch):
     payloads = iter([llm_answer(), llm_answer(c05={"answer": "yes"}), llm_answer()])
 
-    def fake(messages, schema, name="evaluation", reasoning_effort=None):
+    def fake(messages, schema, name="evaluation", reasoning_effort=None, model=None):
         return copy.deepcopy(next(payloads)), {"input_tokens": 1000, "cached_tokens": 0, "output_tokens": 100,
                                                "reasoning_tokens": 0, "cost_usd": 0.01, "duration_ms": 5}
     monkeypatch.setattr(evaluator, "complete_json", fake)

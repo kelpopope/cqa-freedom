@@ -1,20 +1,28 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Body, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from ..services import accuracy
-from ..services.evaluator import EvaluationError, evaluate
+from ..services import accuracy, analytics, jobs
+from ..services import settings as settings_service
+from ..services.evaluator import EvaluationError, evaluate, get_evaluation, history
 
 router = APIRouter(prefix="/api", tags=["evaluations"])
 
 
 class EvaluateRequest(BaseModel):
     conversation_id: str
+    checklist_id: str = "default"
+    version: Optional[int] = None
+
+
+class BatchRequest(BaseModel):
+    group_id: Optional[str] = None
+    conversation_ids: Optional[list[str]] = None
     checklist_id: str = "default"
     version: Optional[int] = None
 
@@ -30,6 +38,59 @@ async def evaluate_one(req: EvaluateRequest):
         return JSONResponse(status_code=e.status_code, content=body)
 
 
+@router.post("/evaluate/batch")
+def evaluate_batch(req: BatchRequest):
+    """Фоновая оценка группы или списка диалогов. Прогресс — GET /api/jobs/{job_id}."""
+    try:
+        job = jobs.start(req.checklist_id, req.version, req.group_id, req.conversation_ids)
+    except jobs.JobError as e:
+        raise HTTPException(422, str(e))
+    return {"job_id": job["job_id"], "total": job["total"], "status": job["status"],
+            "checklist_version": job["checklist_version"]}
+
+
+@router.get("/jobs")
+def list_jobs():
+    return [{k: v for k, v in j.items() if k != "conversation_ids"} for j in jobs.list_recent()]
+
+
+@router.get("/jobs/{job_id}")
+def get_job(job_id: str):
+    job = jobs.get(job_id)
+    if job is None:
+        raise HTTPException(404, f"Задача {job_id} не найдена")
+    return job
+
+
+@router.get("/evaluations/compare")
+def compare_versions(checklist_id: str = "default", from_version: int = 1, to_version: int = 2,
+                     group_id: Optional[str] = None):
+    """«Было → стало» после изменения чек-листа: итоги и изменившиеся ответы по каждому диалогу."""
+    return analytics.compare(checklist_id, from_version, to_version, group_id)
+
+
+@router.get("/evaluations/{evaluation_id}")
+def get_one(evaluation_id: str):
+    ev = get_evaluation(evaluation_id)
+    if ev is None:
+        raise HTTPException(404, f"Оценка {evaluation_id} не найдена")
+    return ev
+
+
+@router.get("/conversations/{conversation_id}/evaluations")
+def conversation_history(conversation_id: str):
+    return history(conversation_id)
+
+
+@router.get("/analytics")
+def analytics_summary(checklist_id: str = "default", version: Optional[int] = None, group_id: Optional[str] = None):
+    """Индикатор для доработки скриптов: провалы по критериям, языкам, операторам; грубые ошибки; needs_review."""
+    report = analytics.summary(checklist_id, version, group_id)
+    if "error" in report:
+        raise HTTPException(404, report["error"])
+    return report
+
+
 @router.get("/metrics/accuracy")
 def accuracy_metrics(group_id: str = "DEV", details: bool = False):
     """Совпадение с эталоном data/gt/<group>_labels.json. details=true — со списком расхождений."""
@@ -39,3 +100,16 @@ def accuracy_metrics(group_id: str = "DEV", details: bool = False):
     if not details:
         report.pop("mismatches", None)
     return report
+
+
+@router.get("/settings")
+def get_settings_():
+    return settings_service.public_settings()
+
+
+@router.put("/settings")
+def put_settings(values: dict[str, Any] = Body(...)):
+    try:
+        return settings_service.update(values)
+    except settings_service.SettingsError as e:
+        raise HTTPException(422, str(e))

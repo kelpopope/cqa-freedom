@@ -62,10 +62,12 @@ def _natural_key(cid: str):
 
 
 def list_items(group_id: str | None = None, language: str | None = None, channel: str | None = None,
-               risk: bool | None = None, status: str | None = None, q: str | None = None) -> list[dict[str, Any]]:
+               risk: bool | None = None, status: str | None = None, q: str | None = None,
+               gross: bool | None = None, needs_review: bool | None = None) -> list[dict[str, Any]]:
     """Список для экрана диалогов.
 
-    risk=true — грубая ошибка или needs_review; status — "not_evaluated" или статус оценки (done/error/…);
+    risk=true — грубая ошибка или needs_review; gross=true — только грубые ошибки;
+    needs_review=true — только требующие проверки; status — "not_evaluated" или статус оценки (done/error/…);
     q — поиск по id, имени оператора и тексту реплик.
     """
     sql, args = "SELECT data FROM conversations WHERE 1=1", []
@@ -97,17 +99,22 @@ def list_items(group_id: str | None = None, language: str | None = None, channel
         ev = evals.get(c["conversation_id"])
         summary = None
         if ev:
-            gross = ev.get("gross_error") or {}
+            gross_ai = ev.get("gross_error") or {}
+            final = ev.get("final") or {}
             summary = {
                 "evaluation_id": ev.get("evaluation_id"),
                 "total": ev.get("total"),
-                "final_total": (ev.get("final") or {}).get("total", ev.get("total")),
-                "gross_error": bool(gross.get("flag")),
+                "final_total": final.get("total", ev.get("total")),
+                "gross_error": bool(final.get("gross_error", gross_ai.get("flag"))),
                 "needs_review": bool(ev.get("needs_review")),
                 "checklist_version": ev.get("checklist_version"),
                 "status": ev.get("status"),
             }
         if risk and not (summary and (summary["gross_error"] or summary["needs_review"])):
+            continue
+        if gross is not None and bool(summary and summary["gross_error"]) != gross:
+            continue
+        if needs_review is not None and bool(summary and summary["needs_review"]) != needs_review:
             continue
         if status:
             current = summary["status"] if summary else "not_evaluated"

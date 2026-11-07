@@ -13,12 +13,12 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from .. import db
-from ..config import get_settings
 from . import checklists as checklist_store
 from . import conversations as conversation_store
 from .llm_client import LLMError, complete_json
 from .prompts import PROMPT_VERSION, build_prompt, build_response_schema
-from .scoring import normalize_answer, score
+from .scoring import apply_overrides, normalize_answer, score
+from .settings import runtime_settings
 
 ASTANA = timezone(timedelta(hours=5))
 MAX_ATTEMPTS = 3
@@ -197,6 +197,80 @@ def assemble(conversation: dict[str, Any], checklist: dict[str, Any], llm: dict[
     }
 
 
+def recompute_final(evaluation: dict[str, Any], checklist: dict[str, Any]) -> dict[str, Any]:
+    """Пересчёт финала по решениям апелляций: ответы ИИ + overrides → scoring.py (п. 7 контракта)."""
+    answers = {c["criterion_id"]: c["answer"] for c in evaluation["criteria"]}
+    overrides = evaluation.get("final", {}).get("overrides", [])
+    scored = score(checklist, apply_overrides(answers, overrides))
+    overridden = {o["criterion_id"] for o in overrides}
+    final = {
+        "total": scored["total"],
+        "overrides": overrides,
+        "criteria": [{**{k: r[k] for k in ("criterion_id", "answer", "raw_points", "points", "effective_weight")},
+                      "overridden": r["criterion_id"] in overridden} for r in scored["criteria"]],
+        "sections": scored["sections"],
+        "gross_error": scored["gross_error"],
+    }
+    evaluation["final"] = final
+    return final
+
+
+_SAME_KEYS = ("type", "title", "description", "scale", "na_allowed", "na_condition")
+
+
+def carried_overrides(conversation_id: str, checklist: dict[str, Any], new_eval: dict[str, Any]) -> list[dict]:
+    """Решения проверяющего — истина от человека: при переоценке они переносятся в новую оценку, если оспоренный
+    критерий в новой версии чек-листа не изменился по сути (иначе решение относится к старой формулировке)."""
+    with db.connect() as conn:
+        row = conn.execute(
+            "SELECT data FROM evaluations WHERE conversation_id=? AND status='done' ORDER BY created_at DESC, rowid DESC LIMIT 1",
+            (conversation_id,)).fetchone()
+    prev = db.loads(row["data"]) if row else None
+    if not prev or not prev.get("final", {}).get("overrides"):
+        return []
+    old_cl = checklist_store.get(prev["checklist_id"], prev["checklist_version"])
+    if not old_cl:
+        return []
+    old = {c["id"]: c for c in old_cl["criteria"]}
+    new = {c["id"]: c for c in checklist["criteria"]}
+    ai = {c["criterion_id"]: c["answer"] for c in new_eval["criteria"]}
+    out = []
+    for o in prev["final"]["overrides"]:
+        cid = o["criterion_id"]
+        if cid not in new or cid not in old or any(old[cid].get(k) != new[cid].get(k) for k in _SAME_KEYS):
+            continue
+        if ai.get(cid) == o["to"]:
+            continue                              # модель и так согласна с решением
+        out.append({**o, "from": ai.get(cid), "carried_from": prev["evaluation_id"]})
+    return out
+
+
+def save(evaluation: dict[str, Any]) -> None:
+    _save(evaluation)
+
+
+def get_evaluation(evaluation_id: str) -> dict[str, Any] | None:
+    with db.connect() as conn:
+        row = conn.execute("SELECT data FROM evaluations WHERE evaluation_id=?", (evaluation_id,)).fetchone()
+    return db.loads(row["data"]) if row else None
+
+
+def history(conversation_id: str) -> list[dict[str, Any]]:
+    """Все оценки диалога (разные версии чек-листа и повторные прогоны) — кратко, новые сверху."""
+    with db.connect() as conn:
+        rows = conn.execute("SELECT data FROM evaluations WHERE conversation_id=? ORDER BY created_at DESC, rowid DESC",
+                            (conversation_id,)).fetchall()
+    out = []
+    for r in rows:
+        ev = db.loads(r["data"])
+        out.append({k: ev.get(k) for k in ("evaluation_id", "checklist_id", "checklist_version", "status",
+                                           "total", "created_at", "model", "needs_review")}
+                   | {"final_total": (ev.get("final") or {}).get("total"),
+                      "gross_error": bool((ev.get("gross_error") or {}).get("flag")),
+                      "answers": {c["criterion_id"]: c["answer"] for c in ev.get("criteria", [])}})
+    return out
+
+
 def validate_llm(checklist: dict[str, Any], llm: dict[str, Any]) -> None:
     """Ответ модели допустим по чек-листу (иначе ScoringError/KeyError → повторный запрос)."""
     for c in checklist["criteria"]:
@@ -238,15 +312,16 @@ def evaluate(conversation_id: str, checklist_id: str = "default", version: int |
     if checklist is None:
         raise EvaluationError(f"Чек-лист {checklist_id} (версия {version or 'активная'}) не найден", 404)
 
-    s = get_settings()
-    effort = reasoning_effort or s.reasoning_effort
+    s = runtime_settings()
+    effort = reasoning_effort or s["reasoning_effort"]
+    model_name = s["model"]
     evaluation: dict[str, Any] = {
         "evaluation_id": f"ev_{uuid.uuid4().hex[:12]}",
         "conversation_id": conversation_id,
         "checklist_id": checklist["checklist_id"],
         "checklist_version": checklist["version"],
         "status": "running",
-        "model": {"provider": "openai", "name": s.openai_model, "reasoning_effort": effort,
+        "model": {"provider": "openai", "name": model_name, "reasoning_effort": effort,
                   "prompt_version": PROMPT_VERSION},
         "usage": None,
         "created_at": datetime.now(ASTANA).isoformat(timespec="seconds"),
@@ -254,7 +329,7 @@ def evaluate(conversation_id: str, checklist_id: str = "default", version: int |
 
     messages = build_prompt(checklist, conversation)
     schema = build_response_schema(checklist)
-    n = max(1, int(samples or s.self_consistency))
+    n = max(1, int(samples or s["self_consistency"]))
     evaluation["model"]["samples"] = n
     started = time.monotonic()
 
@@ -262,7 +337,7 @@ def evaluate(conversation_id: str, checklist_id: str = "default", version: int |
         usage, error = None, None
         for _attempt in range(MAX_ATTEMPTS):
             try:
-                llm, u = complete_json(messages, schema, reasoning_effort=effort)
+                llm, u = complete_json(messages, schema, reasoning_effort=effort, model=model_name)
                 usage = _sum_usage(usage, u)
                 validate_llm(checklist, llm)
                 return llm, usage, None
@@ -288,6 +363,8 @@ def evaluate(conversation_id: str, checklist_id: str = "default", version: int |
     if samples_ok:
         merged, votes = vote(checklist, samples_ok)
         evaluation.update(assemble(conversation, checklist, merged, votes))
+        evaluation["final"]["overrides"] = carried_overrides(conversation_id, checklist, evaluation)
+        recompute_final(evaluation, checklist)
         evaluation["status"] = "done"
         evaluation["usage"] = usage
         _save(evaluation)

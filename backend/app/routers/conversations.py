@@ -45,8 +45,10 @@ def upload_conversation(record: dict[str, Any] = Body(...)):
 @router.get("/conversations")
 def list_conversations(group_id: Optional[str] = None, language: Optional[str] = None,
                        channel: Optional[str] = None, risk: Optional[bool] = None,
-                       status: Optional[str] = None, q: Optional[str] = None):
-    return store.list_items(group_id=group_id, language=language, channel=channel, risk=risk, status=status, q=q)
+                       status: Optional[str] = None, q: Optional[str] = None,
+                       gross: Optional[bool] = None, needs_review: Optional[bool] = None):
+    return store.list_items(group_id=group_id, language=language, channel=channel, risk=risk, status=status, q=q,
+                            gross=gross, needs_review=needs_review)
 
 
 @router.get("/conversations/{conversation_id}")

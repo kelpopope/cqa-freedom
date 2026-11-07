@@ -35,12 +35,12 @@ def cost_usd(input_tokens: int, cached_tokens: int, output_tokens: int) -> float
 
 
 def complete_json(messages: list[dict[str, str]], schema: dict[str, Any], name: str = "evaluation",
-                  reasoning_effort: str | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
+                  reasoning_effort: str | None = None, model: str | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
     s = get_settings()
     started = time.monotonic()
     try:
         resp = _get_client().responses.create(
-            model=s.openai_model,
+            model=model or s.openai_model,
             input=messages,
             reasoning={"effort": reasoning_effort or s.reasoning_effort},
             text={"format": {"type": "json_schema", "name": name, "schema": schema, "strict": True}},

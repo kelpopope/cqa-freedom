@@ -14,12 +14,15 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import db
 from .config import FRONTEND_DIR, get_settings
-from .routers import checklists, conversations, evaluations
+from .routers import appeals, checklists, conversations, evaluations
+from .services import jobs
+from .services.settings import runtime_settings
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     db.init_db()
+    jobs.mark_interrupted()
     yield
 
 
@@ -44,13 +47,15 @@ async def validation_error(_: Request, exc: RequestValidationError):
 # --- API ---------------------------------------------------------------------------------------
 @app.get("/api/health")
 def health():
-    s = get_settings()
-    return {"ok": True, "llm": {"provider": "openai", "name": s.openai_model, "mode": s.llm_mode}}
+    s, rt = get_settings(), runtime_settings()
+    return {"ok": True, "llm": {"provider": "openai", "name": rt["model"], "mode": s.llm_mode,
+                                "reasoning_effort": rt["reasoning_effort"], "samples": rt["self_consistency"]}}
 
 
 app.include_router(conversations.router)
 app.include_router(checklists.router)
 app.include_router(evaluations.router)
+app.include_router(appeals.router)
 
 
 # --- Фронт (монтируется последним, чтобы не перекрывать /api) ----------------------------------
