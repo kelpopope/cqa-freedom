@@ -368,7 +368,7 @@ function evalHtml(conv, ev, cl) {
   const donut = donutHtml(rows, meta, T);
   const low = rows.filter((r) => r.confidence === 'low' || r.evidence_valid === false).map((r) => meta.get(r.criterion_id)).filter(Boolean);
   const openAp = S.data.appeals.filter((a) => a.status === 'open' && a.evaluation_id === ev.evaluation_id && a.author_role === 'operator');
-  const firstOpen = S.active || rows.find((r) => { const c = meta.get(r.criterion_id); return c && c.type !== 'flag' && failed(c, r); })?.criterion_id;
+  const firstOpen = S.active; // при открытии диалога все критерии свёрнуты; раскрывается тот, что выбрал пользователь
   const secs = (cl.sections?.length ? cl.sections : [{ id: null, title: 'Критерии' }]).map((s) => {
     const crits = cl.criteria.filter((c) => (s.id ? c.section_id === s.id : true));
     if (!crits.length) return '';
