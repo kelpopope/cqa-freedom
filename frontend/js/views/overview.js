@@ -14,24 +14,23 @@ function calibration(acc, s) {
   const titles = new Map(s.criteria.map((c) => [c.criterion_id, c.title]));
   const crit = Object.entries(acc.per_criterion || {});
   const g = acc.gross || {};
-  const stat = (v, label, hint) => `<div class="cqa-calib__stat"><b class="cqa-num">${v}</b><span>${label}</span><small>${hint}</small></div>`;
+  const stat = (v, label) => `<div class="cqa-calib__stat"><b class="cqa-num">${v}</b><span>${label}</span></div>`;
   return `
     <section class="cqa-card" style="margin-top:14px">
-      <div class="cqa-card__head"><h2>Точность AI-оценки</h2><span class="cqa-faint" style="margin-left:auto;font-size:13px">сверка с ручной разметкой команды, ${acc.labeled} диалогов ${esc(acc.group_id)}</span></div>
+      <div class="cqa-card__head"><h2>Точность AI-оценки</h2><span class="cqa-faint" style="margin-left:auto;font-size:13px">ручная разметка ${esc(acc.group_id)}, ${acc.labeled} диалогов</span></div>
       <div class="cqa-card__body cqa-calib">
         <div class="cqa-calib__stats">
-          ${stat(pct1(acc.overall), 'Совпадение ответов', `${acc.labeled * crit.length} ответов по ${crit.length} критериям`)}
-          ${acc.overall_confident != null ? stat(pct1(acc.overall_confident), 'В однозначных случаях', 'без спорных случаев, помеченных при разметке') : ''}
-          ${acc.kappa != null ? stat(acc.kappa.toLocaleString('ru-RU', { maximumFractionDigits: 2 }), 'Согласие, каппа Коэна', 'выше 0,8 — почти полное согласие') : ''}
-          ${g.tp != null ? stat(`${g.tp} из ${g.tp + g.fn}`, 'Грубые нарушения найдены', `ложных срабатываний: ${g.fp}`) : ''}
-          ${acc.total_mae != null ? stat(`±${fmt2(acc.total_mae)}`, 'Отклонение итога', 'баллов в среднем от эталона') : ''}
-          ${acc.per_language ? stat(Object.entries(acc.per_language).map(([l, v]) => `${l} ${Math.round(v * 100)}`).join(' · '), 'Паритет языков', 'совпадение, %') : ''}
+          ${stat(pct1(acc.overall), 'Совпадение ответов')}
+          ${acc.overall_confident != null ? stat(pct1(acc.overall_confident), 'Без спорных случаев') : ''}
+          ${acc.kappa != null ? stat(acc.kappa.toLocaleString('ru-RU', { maximumFractionDigits: 2 }), 'Каппа Коэна') : ''}
+          ${g.tp != null ? stat(`${g.tp} из ${g.tp + g.fn}`, `Грубые нарушения, ложных ${g.fp}`) : ''}
+          ${acc.total_mae != null ? stat(`±${fmt2(acc.total_mae)}`, 'Отклонение итога') : ''}
+          ${acc.per_language ? stat(Object.entries(acc.per_language).map(([l, v]) => `${l} ${Math.round(v * 100)}`).join(' · '), 'По языкам, %') : ''}
         </div>
         <div class="cqa-calib__rows">
           ${crit.map(([id, v]) => `<div class="cqa-calib__row"><span>${esc(titles.get(id) || (id === 'c08' ? 'Грубые ошибки' : id))}</span><div class="cqa-langs__bar"><i data-w="${v * 100}%"></i></div><b class="cqa-num">${pct1(v)}</b></div>`).join('')}
         </div>
       </div>
-      <p class="cqa-faint" style="font-size:12px;padding:0 20px 16px">Эталон — ручная разметка DEV, спорные ответы помечены отдельно. Модель на этих ответах не обучалась: они служат проверкой здравого смысла. Пересчитывается по последним оценкам.</p>
     </section>`;
 }
 
@@ -41,19 +40,19 @@ export async function render(main) {
   const maxRate = Math.max(0.01, ...worst.map((c) => c.fail_rate));
   const B = s.buckets; const nb = B.low + B.mid + B.high || 1;
   main.innerHTML = `
-    <div class="cqa-page-head"><h1>Обзор качества</h1><span class="cqa-page-head__sub">Набор ${esc(store.get().groupId)}, оценено ${s.evaluated} из ${s.total} диалогов</span>
+    <div class="cqa-page-head"><h1>Обзор качества</h1>
       <div class="cqa-page-head__actions"><a class="cqa-btn cqa-btn--sm" href="#/dialogs">${icon('chat', 'cqa-ico--sm')}Все диалоги</a></div></div>
 
     <div class="cqa-kpis cqa-stagger">
-      <div class="cqa-card cqa-kpi cqa-kpi--lead" style="--i:0"><div class="cqa-kpi__label">Средний балл</div><div class="cqa-kpi__value"><span data-count="${s.avg ?? ''}">${s.avg == null ? '—' : fmt2(s.avg)}</span> <small>/ 100</small></div><div class="cqa-kpi__hint">по ${s.evaluated} оценённым диалогам</div></div>
-      <a class="cqa-card cqa-kpi cqa-kpi--bad" style="--i:1" href="#/dialogs" data-view="risk"><div class="cqa-kpi__label">Грубые нарушения</div><div class="cqa-kpi__value"><span data-count="${s.gross}" data-dec="0">${s.gross}</span> <small>${pct(s.gross, s.evaluated)} %</small></div><div class="cqa-kpi__hint">требуют реакции руководителя</div></a>
-      <a class="cqa-card cqa-kpi" style="--i:2" href="#/dialogs" data-view="attention"><div class="cqa-kpi__label">Требуют проверки</div><div class="cqa-kpi__value"><span data-count="${s.needs_review}" data-dec="0">${s.needs_review}</span></div><div class="cqa-kpi__hint">низкая уверенность или апелляция</div></a>
-      <div class="cqa-card cqa-kpi" style="--i:3"><div class="cqa-kpi__label">Проверено людьми</div><div class="cqa-kpi__value"><span data-count="${s.reviewed}" data-dec="0">${s.reviewed}</span> <small>из ${s.evaluated}</small></div><div class="cqa-kpi__hint">открытых апелляций: ${s.appeals_open}</div></div>
+      <div class="cqa-card cqa-kpi cqa-kpi--lead" style="--i:0"><div class="cqa-kpi__label">Средний балл</div><div class="cqa-kpi__value"><span data-count="${s.avg ?? ''}">${s.avg == null ? '—' : fmt2(s.avg)}</span> <small>/ 100</small></div></div>
+      <a class="cqa-card cqa-kpi cqa-kpi--bad" style="--i:1" href="#/dialogs" data-view="risk"><div class="cqa-kpi__label">Грубые нарушения</div><div class="cqa-kpi__value"><span data-count="${s.gross}" data-dec="0">${s.gross}</span> <small>${pct(s.gross, s.evaluated)} %</small></div></a>
+      <a class="cqa-card cqa-kpi" style="--i:2" href="#/dialogs" data-view="attention"><div class="cqa-kpi__label">Требуют проверки</div><div class="cqa-kpi__value"><span data-count="${s.needs_review}" data-dec="0">${s.needs_review}</span></div></a>
+      <div class="cqa-card cqa-kpi" style="--i:3"><div class="cqa-kpi__label">Проверено людьми</div><div class="cqa-kpi__value"><span data-count="${s.reviewed}" data-dec="0">${s.reviewed}</span> <small>из ${s.evaluated}</small></div>${s.appeals_open ? `<div class="cqa-kpi__hint">апелляций: ${s.appeals_open}</div>` : ''}</div>
     </div>
 
     <div class="cqa-grid2">
       <section class="cqa-card">
-        <div class="cqa-card__head"><h2>Где операторы теряют баллы</h2><span class="cqa-faint" style="margin-left:auto;font-size:13px">доля диалогов с неполным баллом</span></div>
+        <div class="cqa-card__head"><h2>Где операторы теряют баллы</h2></div>
         <div class="cqa-card__body"><div class="cqa-rank">
           ${worst.map((c, i) => `<div class="cqa-rank__row"><span class="cqa-rank__n">${String(i + 1).padStart(2, '0')}</span><div><div class="cqa-rank__t"><span>${esc(c.title)}</span><small>${c.failed} из ${c.applicable}${c.na ? `, N/A ${c.na}` : ''}</small></div><div class="cqa-rank__bar"><i data-w="${(c.fail_rate / maxRate) * 100}%" style="opacity:${0.45 + 0.55 * (c.fail_rate / maxRate)}"></i></div></div><span class="cqa-rank__v">${pct(c.failed, c.applicable)} %</span></div>`).join('')}
         </div></div>
@@ -70,8 +69,7 @@ export async function render(main) {
           <div class="cqa-langs">
             ${s.by_language.filter((l) => l.n).map((l) => `<div class="cqa-langs__row"><span>${esc(LANG[l.language] || l.language)}</span><div class="cqa-langs__bar"><i data-w="${l.avg ?? 0}%"></i></div><b class="cqa-num" style="text-align:right">${fmt2(l.avg)}</b></div>`).join('')}
           </div>
-          <p class="cqa-faint" style="font-size:12px;margin-top:10px">Средний балл по языку диалога: один чек-лист для RU, KZ и EN</p>
-          ${s.sla?.measured ? `<div class="cqa-sla-sum"><div><b class="cqa-num ${s.sla.breached ? 'cqa-bad-text' : ''}">${s.sla.breached} из ${s.sla.measured}</b><span>нарушений SLA первой реакции (${fmtDuration(s.sla.threshold_sec)})</span></div><div><b class="cqa-num">${fmtDuration(s.sla.avg_wait_sec)}</b><span>в среднем до ответа оператора, максимум ${fmtDuration(s.sla.max_wait_sec)}</span></div></div>` : ''}
+          ${s.sla?.measured ? `<div class="cqa-sla-sum"><div><b class="cqa-num ${s.sla.breached ? 'cqa-bad-text' : ''}">${s.sla.breached} из ${s.sla.measured}</b><span>нарушений SLA ${fmtDuration(s.sla.threshold_sec)}</span></div><div><b class="cqa-num">${fmtDuration(s.sla.avg_wait_sec)}</b><span>среднее ожидание оператора</span></div></div>` : ''}
         </div>
       </section>
     </div>

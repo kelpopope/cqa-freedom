@@ -145,7 +145,7 @@ export async function render(main, { id } = {}) {
   S.id = id || visible()[0]?.appeal_id || null;
   if (S.id && !id) history.replaceState(null, '', `#/appeals/${S.id}`);
   main.innerHTML = `
-    <div class="cqa-page-head"><h1>Апелляции</h1><span class="cqa-page-head__sub">${store.get().role === 'operator' ? 'Ваши обращения по оценкам' : 'Операторы оспаривают оценки, проверяющий принимает решение'}</span></div>
+    <div class="cqa-page-head"><h1>Апелляции</h1></div>
     <div class="cqa-ap"><section class="cqa-col cqa-ap__list" aria-label="Список апелляций"></section><section class="cqa-col cqa-scroll" id="cqa-ap-detail" aria-label="Апелляция"></section></div>`;
   main.querySelector('.cqa-ap__list').innerHTML = listHtml();
   bindList();

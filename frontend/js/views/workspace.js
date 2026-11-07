@@ -94,9 +94,9 @@ function queueItems() {
   const one = (x, i) => {
     const [label, tone] = status(x); const t = x.evaluation?.final_total;
     return `<button type="button" class="cqa-qi" data-id="${esc(x.conversation_id)}" style="--i:${Math.min(i, 12)}" aria-current="${x.conversation_id === S.id}">
-      <div class="cqa-qi__l1"><span class="cqa-qi__id">${esc(x.conversation_id)}</span><span class="cqa-badge cqa-badge--${tone}">${label}</span></div>
+      <div class="cqa-qi__l1"><span class="cqa-qi__id">${esc(x.conversation_id)}</span>${label === 'Оценён' ? '' : `<span class="cqa-badge cqa-badge--${tone}">${label}</span>`}</div>
       <div class="cqa-qi__l2" title="${esc(x.evaluation?.headline || '')}">${esc(x.evaluation?.headline || [x.operator_name, CHANNEL[x.channel], x.language].filter(Boolean).join(', '))}</div>
-      <div class="cqa-qi__l3"><span class="cqa-qi__score ${t != null && t < 60 ? 'cqa-qi__score--low' : ''}">${t != null ? `${fmt2(t)} / 100` : '—'}</span><span>${esc([x.operator_name, x.language].filter(Boolean).join(', '))}${x.evaluation ? `, ${esc(relTime(x.evaluation.created_at))}` : ''}</span></div>
+      <div class="cqa-qi__l3"><span class="cqa-qi__score ${t != null && t < 60 ? 'cqa-qi__score--low' : ''}">${t != null ? `${fmt2(t)} / 100` : '—'}</span><span>${esc([x.operator_name, x.language].filter(Boolean).join(', '))}</span></div>
     </button>`;
   };
   let i = 0;
@@ -139,7 +139,6 @@ function mapHtml(conv, ev, meta) {
   const nBad = bad.size;
   return `<div class="cqa-map" aria-label="Карта разговора">
     <div class="cqa-map__track">${segs}</div>
-    <div class="cqa-map__legend"><span><i class="cqa-map__seg--bot"></i>Бот</span><span><i class="cqa-map__seg--client"></i>Клиент</span><span><i class="cqa-map__seg--operator"></i>Оператор</span><span><i class="cqa-map__seg--bad"></i>Нарушение</span>${conv.transcript.some((m) => m.on_hold) ? '<span><i class="cqa-map__seg--hold"></i>Удержание</span>' : ''}<span class="cqa-map__events">${nBad ? `Проблемных реплик: ${nBad}` : ''}</span></div>
   </div>`;
 }
 
@@ -264,9 +263,9 @@ function verdict(c, r) {
 }
 
 function mathText(c, r) {
-  if (c.type === 'flag') return 'Без баллов, отмечается отдельно от итога';
-  if (r.answer === 'na') return `Вес ${c.weight} исключён из расчёта и распределён между применимыми критериями`;
-  if (c.type === 'binary') return r.answer === 'yes' ? `«Да» даёт полный вес: ${c.weight} из ${c.weight}` : `«Нет» даёт 0 из ${c.weight}`;
+  if (c.type === 'flag') return 'Не влияет на итог';
+  if (r.answer === 'na') return `Вес ${c.weight} перераспределён`;
+  if (c.type === 'binary') return `${r.answer === 'yes' ? c.weight : 0} из ${c.weight}`;
   const max = Math.max(...c.scale.map((s) => s.value));
   return `${c.weight} × ${r.answer} / ${max} = ${pts(r.raw_points)} из ${c.weight}`;
 }
@@ -296,7 +295,7 @@ function critHtml(c, r, open) {
         <p class="cqa-cr__expl">${esc(refs1(r.answer === 'na' ? r.na_reason : r.explanation || ''))}</p>
         ${evs ? `<div class="cqa-cr__label">Доказательство</div><div class="cqa-evs">${evs}</div>` : ''}
         ${range}
-        <div class="cqa-cr__meta"><span>Уверенность AI</span><span class="cqa-conf ${r.confidence === 'low' ? 'cqa-conf--low' : ''}">${r.confidence === 'low' ? 'низкая' : 'высокая'}</span>${r.uncertainty_reason ? `<span class="cqa-faint">${esc(refs1(r.uncertainty_reason))}</span>` : ''}${r.evidence_valid === false ? '<span class="cqa-faint">цитата не найдена в реплике</span>' : ''}</div>
+        ${r.confidence === 'low' || r.evidence_valid === false ? `<div class="cqa-cr__meta"><span class="cqa-conf cqa-conf--low">${r.confidence === 'low' ? 'Низкая уверенность' : 'Цитата не найдена'}</span>${r.uncertainty_reason ? `<span class="cqa-faint">${esc(refs1(r.uncertainty_reason))}</span>` : ''}</div>` : ''}
         <div class="cqa-cr__foot"><span>${esc(mathText(c, r))}</span><span class="cqa-push">${act}</span></div>
       </div></div></div>
     </div>`;
@@ -336,27 +335,25 @@ function evalHtml(conv, ev, cl) {
   const rep = ev.reproducibility;
   const grossTxt = (g?.types || []).map((t) => GROSS[t] || t).join(', ').toLowerCase() || 'выявлено';
   const flags = [
-    g?.flag ? `<li class="cqa-flag cqa-flag--bad">${icon('alert', 'cqa-ico--sm')}<span><b>Грубое нарушение:</b> ${esc(grossTxt)}. Не влияет на балл${g.evidence?.[0] ? `, <button type="button" class="cqa-link" data-goto="${g.evidence[0].index}">реплика #${turnNo(g.evidence[0].index)}</button>` : ''}</span></li>` : '',
-    low.length ? `<li class="cqa-flag cqa-flag--warn">${icon('info', 'cqa-ico--sm')}<span><b>Проверьте вручную:</b> низкая уверенность модели, ${low.map((c) => esc(c.title.toLowerCase())).join(', ')}</span></li>` : '',
+    g?.flag ? `<li class="cqa-flag cqa-flag--bad">${icon('alert', 'cqa-ico--sm')}<span><b>Грубое нарушение:</b> ${esc(grossTxt)}${g.evidence?.[0] ? ` · <button type="button" class="cqa-link" data-goto="${g.evidence[0].index}">реплика #${turnNo(g.evidence[0].index)}</button>` : ''}</span></li>` : '',
+    low.length ? `<li class="cqa-flag cqa-flag--warn">${icon('info', 'cqa-ico--sm')}<span><b>Низкая уверенность:</b> ${low.map((c) => esc(c.title.toLowerCase())).join(', ')}</span></li>` : '',
     openAp.length ? `<li class="cqa-flag cqa-flag--ok">${icon('scale', 'cqa-ico--sm')}<span><b>Апелляция оператора:</b> ${openAp.map((a) => esc((meta.get(a.criterion_id)?.title || '').toLowerCase())).join(', ')}${rl === 'qa' ? `, <a href="#/appeals/${openAp[0].appeal_id}">рассмотреть</a>` : ''}</span></li>` : '',
   ].join('');
-  const longSummary = (ev.summary || '').length > 150;
   return `
     <div class="cqa-col__body cqa-scroll" id="cqa-crit-scroll">
     <div class="cqa-score ${tone[0] === 'bad' && !g?.flag ? 'cqa-score--low' : ''}">
       <div class="cqa-score__l1"><h2>Итоговый балл</h2><button type="button" class="cqa-link" id="cqa-howto">${icon('help', 'cqa-ico--sm')}Как считается</button></div>
       <div class="cqa-score__num"><b id="cqa-total" data-v="${T.total ?? ''}">${T.total == null ? '—' : fmt2(T.total)}</b><span>/ 100</span><span class="cqa-badge cqa-badge--${tone[0]}">${tone[1]}</span></div>
       <div class="cqa-bar" role="img" aria-label="Вклад критериев в итог: ${pts(T.raw)} из ${pts(T.W)}" title="Ширина отрезка — вес критерия, заливка — набранные баллы${T.na.length ? ', пунктир — N/A' : ''}">${segs}</div>
-      <div class="cqa-score__raw">${T.total == null ? 'Нет применимых критериев с весом: итог не рассчитывается' : `${pts(T.raw)} из ${pts(T.W)} возможных баллов${T.na.length ? `, N/A: ${T.na.map((c) => c.title.toLowerCase()).join(', ')}` : ''}`}${changed ? `<br>После решения проверяющего: <s>${fmt2(ev.total)}</s> → <b>${fmt2(ev.final.total)}</b>` : ''}</div>
-      ${ev.summary ? `<p class="cqa-summary ${longSummary ? 'is-clamped' : ''}" id="cqa-summary">${esc(refs1(ev.summary))}</p>${longSummary ? '<button type="button" class="cqa-link cqa-link--accent" id="cqa-summary-more" aria-controls="cqa-summary" aria-expanded="false">Читать полностью</button>' : ''}` : ''}
+      <div class="cqa-score__raw">${T.total == null ? 'Нет применимых критериев с весом: итог не рассчитывается' : `${pts(T.raw)} из ${pts(T.W)} баллов${T.na.length ? ` · N/A: ${T.na.map((c) => c.title.toLowerCase()).join(', ')}` : ''}`}${changed ? `<br>После решения проверяющего: <s>${fmt2(ev.total)}</s> → <b>${fmt2(ev.final.total)}</b>` : ''}</div>
       ${flags ? `<ul class="cqa-flags">${flags}</ul>` : ''}
     </div>
-      <div class="cqa-crit-h"><h2>Критерии оценки</h2><span>${esc(cl.name)}, версия ${ev.checklist_version}</span></div>
+      <div class="cqa-crit-h"><h2>Критерии</h2><span>версия ${ev.checklist_version}</span></div>
       ${secs}
       <div style="height:12px"></div>
     </div>
     ${acts}
-    <div class="cqa-evfoot"><span>${esc(ev.model?.name || '')}, ${ev.usage?.duration_ms ? `${fmt2(ev.usage.duration_ms / 1000)} с` : ''}, ${fmtMoney(ev.usage?.cost_usd)} за оценку</span>
+    <div class="cqa-evfoot"><span>${[esc(ev.model?.name || ''), ev.usage?.duration_ms ? `${Math.round(ev.usage.duration_ms / 1000)} с` : '', fmtMoney(ev.usage?.cost_usd)].filter(Boolean).join(' · ')}</span>
       ${rep ? `<span class="${rep.agreement === 1 ? 'cqa-ok' : ''}">${icon('check', 'cqa-ico--sm')} Повторный прогон: совпадение ${Math.round(rep.agreement * 100)} %</span>` : rl !== 'operator' ? '<button type="button" class="cqa-link" id="cqa-repeat">Проверить воспроизводимость</button>' : ''}</div>`;
 }
 
@@ -417,7 +414,6 @@ function bindColumns() {
     if (t.closest('#cqa-appeal-any')) { appealModal(S.active); return; }
     if (t.closest('#cqa-override')) { overrideModal(S.active); return; }
     if (t.closest('#cqa-howto')) { howtoModal(); return; }
-    if (t.closest('#cqa-summary-more')) { const p = S.main.querySelector('#cqa-summary'); const b = t.closest('#cqa-summary-more'); const open = p.classList.toggle('is-clamped'); b.textContent = open ? 'Читать полностью' : 'Свернуть'; b.setAttribute('aria-expanded', String(!open)); return; }
     if (t.closest('#cqa-confirm')) { const b = t.closest('#cqa-confirm'); b.disabled = true; await api.reviewEvaluation(S.data.evaluation.evaluation_id, { action: 'confirm', reviewer: ROLES.qa.person }); toast('Проверка подтверждена'); await reloadAll(); return; }
     if (t.closest('#cqa-unconfirm')) { await api.reviewEvaluation(S.data.evaluation.evaluation_id, { action: 'unconfirm' }); await reloadAll(); return; }
     if (t.closest('#cqa-repeat')) { const b = t.closest('#cqa-repeat'); b.innerHTML = '<span class="cqa-spin" style="width:11px;height:11px"></span> Повторный прогон'; const ev = await api.repeatEvaluation(S.data.evaluation.evaluation_id); toast(`Повторный прогон: совпадение ${Math.round(ev.reproducibility.agreement * 100)} %`); await loadConversation(S.id, { keepScroll: true }); return; }
@@ -577,7 +573,7 @@ function headHtml() {
   const n = S.list.filter((x) => x.evaluation).length;
   return `<div class="cqa-page-head">
       <button type="button" class="cqa-btn cqa-btn--icon cqa-q-toggle" id="cqa-q-toggle" aria-label="Очередь диалогов">${icon('inbox')}</button>
-      <h1>${title}</h1><span class="cqa-page-head__sub">Набор ${esc(store.get().groupId)}, ${n} из ${S.list.length} оценено</span>
+      <h1>${title}</h1>
       ${rl === 'qa' ? `<div class="cqa-page-head__actions">
         <label class="cqa-label" for="cqa-group">Набор</label>
         <input class="cqa-input cqa-input--sm" id="cqa-group" value="${esc(store.get().groupId)}" title="group_id набора у организаторов" style="width:96px" autocomplete="off">
