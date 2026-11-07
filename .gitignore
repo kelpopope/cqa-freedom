@@ -1,0 +1,24 @@
+# секреты
+.env
+.env.*
+!.env.example
+
+# данные и материалы организаторов (не публикуем)
+data/dev.json
+data/raw/
+docs/materials/
+*.pdf
+
+# локальное
+*.db
+*.sqlite*
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+node_modules/
