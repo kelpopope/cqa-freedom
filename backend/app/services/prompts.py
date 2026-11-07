@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-PROMPT_VERSION = "p5.2"
+PROMPT_VERSION = "p5.3"
 
 GENERAL_RULES = """Ты — эксперт отдела контроля качества брокера Freedom Broker. Ты оцениваешь работу ОПЕРАТОРА поддержки в одном диалоге по чек-листу.
 
