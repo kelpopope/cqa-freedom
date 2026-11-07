@@ -68,8 +68,8 @@ export function toast(text, tone = 'ok') {
   el.className = `cqa-toast cqa-toast--${tone}`;
   el.innerHTML = `${icon(tone === 'ok' ? 'check' : 'alert')}<span>${esc(text)}</span>`;
   toastBox.appendChild(el);
-  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 200ms'; }, 3200);
-  setTimeout(() => el.remove(), 3500);
+  setTimeout(() => el.classList.add('is-leaving'), 3200);
+  setTimeout(() => el.remove(), 3450);
 }
 
 export const $ = (sel, root = document) => root.querySelector(sel);

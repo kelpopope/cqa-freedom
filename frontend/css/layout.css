@@ -1,0 +1,90 @@
+/* Оболочка: боковое меню, область контента, адаптив */
+.cqa-shell { display: grid; grid-template-columns: var(--cqa-side-w) minmax(0, 1fr); min-height: 100vh; }
+
+.cqa-side {
+  position: sticky; top: 0; height: 100vh; z-index: 30;
+  display: flex; flex-direction: column; padding: 20px 12px 14px;
+  background: var(--cqa-surface); border-right: 1px solid var(--cqa-line);
+}
+.cqa-logo { display: flex; align-items: center; gap: 10px; padding: 0 10px; line-height: 1; }
+.cqa-logo__mark { display: block; width: 32px; height: auto; flex: none; }
+.cqa-logo__words { display: block; }
+.cqa-logo__word { display: block; height: 32px; width: auto; }
+.cqa-logo__word--light { display: none; }
+.cqa-root[data-theme="dark"] .cqa-logo__word--ink { display: none; }
+.cqa-root[data-theme="dark"] .cqa-logo__word--light { display: block; }
+.cqa-logo__sub { padding: 10px 10px 0 50px; font-size: var(--cqa-fs-xs); color: var(--cqa-text-3); }
+
+.cqa-menu { margin-top: 26px; display: flex; flex-direction: column; gap: 4px; }
+.cqa-menu a {
+  position: relative; display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 12px; border-radius: var(--cqa-r);
+  color: var(--cqa-text-2); font-size: var(--cqa-fs-md); font-weight: 500;
+  transition: background var(--cqa-fast), color var(--cqa-fast);
+}
+.cqa-menu a:hover { background: var(--cqa-surface-2); color: var(--cqa-text); }
+.cqa-menu a[aria-current="page"] { background: var(--cqa-green-soft); color: var(--cqa-green-dark); font-weight: 600; }
+.cqa-menu .cqa-pill { margin-left: auto; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: var(--cqa-surface-3); color: var(--cqa-text-2); font-size: var(--cqa-fs-xs); display: grid; place-items: center; font-weight: 600; }
+.cqa-menu a[aria-current="page"] .cqa-pill { background: var(--cqa-surface); }
+
+.cqa-dataset { margin: 22px 10px 0; padding-top: 16px; border-top: 1px solid var(--cqa-line); }
+.cqa-dataset__label { font-size: var(--cqa-fs-xs); color: var(--cqa-text-3); }
+.cqa-dataset__row { display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px; }
+.cqa-dataset__row b { font-weight: 600; }
+.cqa-dataset__row span { font-size: var(--cqa-fs-xs); color: var(--cqa-text-3); }
+.cqa-dataset__bar { margin-top: 8px; height: 4px; border-radius: 4px; background: var(--cqa-surface-3); overflow: hidden; }
+.cqa-dataset__bar i { display: block; height: 100%; background: var(--cqa-green); transition: width var(--cqa-slow) var(--cqa-ease); }
+
+.cqa-side__foot { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+.cqa-user { position: relative; display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 8px 4px; border: 0; border-top: 1px solid var(--cqa-line); background: transparent; text-align: left; }
+.cqa-user:hover .cqa-user__name { color: var(--cqa-green-dark); }
+.cqa-avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--cqa-green-dark); color: var(--cqa-on-accent); display: grid; place-items: center; font-weight: 600; font-size: var(--cqa-fs-sm); flex: none; }
+.cqa-user__name { display: block; font-weight: 600; transition: color var(--cqa-fast); }
+.cqa-user__role { display: block; font-size: var(--cqa-fs-xs); color: var(--cqa-text-3); }
+.cqa-user .cqa-ico { margin-left: auto; color: var(--cqa-text-3); }
+.cqa-side__tools { display: flex; gap: 4px; padding: 0 2px; }
+
+.cqa-app { min-width: 0; display: flex; flex-direction: column; }
+.cqa-main { flex: 1; min-width: 0; padding: 20px 24px 24px; }
+.cqa-main--flush { padding-bottom: 20px; }
+
+.cqa-page-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.cqa-page-head__sub { color: var(--cqa-text-3); }
+.cqa-page-head__actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* Мобильная шапка */
+.cqa-mtop { display: none; position: sticky; top: 0; z-index: 25; height: 56px; align-items: center; gap: 12px; padding: 0 12px; background: var(--cqa-surface); border-bottom: 1px solid var(--cqa-line); }
+.cqa-mtop .cqa-logo { padding: 0; }
+.cqa-mtop__right { margin-left: auto; display: flex; gap: 4px; }
+.cqa-scrim { display: none; }
+
+/* Планшет: меню иконками */
+@media (max-width: 1100px) {
+  .cqa-root { --cqa-side-w: 76px; }
+  .cqa-side { padding: 20px 10px 14px; align-items: stretch; }
+  .cqa-logo { justify-content: center; padding: 0; }
+  .cqa-logo > div, .cqa-logo__sub, .cqa-menu a span:not(.cqa-pill), .cqa-dataset, .cqa-user__text, .cqa-user > .cqa-ico { display: none; }
+  .cqa-menu a { justify-content: center; padding: 0; }
+  .cqa-menu .cqa-pill { position: absolute; top: 2px; right: 4px; min-width: 18px; height: 18px; font-size: 11px; }
+  .cqa-user { justify-content: center; padding: 12px 0 4px; }
+  .cqa-side__tools { flex-direction: column; align-items: center; }
+  .cqa-main { padding: 16px 16px 20px; }
+}
+
+/* Телефон: меню выезжает сбоку */
+@media (max-width: 760px) {
+  .cqa-shell { grid-template-columns: minmax(0, 1fr); }
+  .cqa-root { --cqa-side-w: 260px; }
+  .cqa-side { position: fixed; left: 0; top: 0; bottom: 0; width: 260px; transform: translateX(-100%); transition: transform var(--cqa-base) var(--cqa-ease); box-shadow: var(--cqa-shadow-pop); padding: 20px 12px 14px; }
+  .cqa-root[data-nav-open="true"] .cqa-side { transform: none; }
+  .cqa-logo { justify-content: flex-start; padding: 0 10px; }
+  .cqa-logo > div, .cqa-logo__sub, .cqa-menu a span:not(.cqa-pill), .cqa-dataset, .cqa-user__text, .cqa-user > .cqa-ico { display: revert; }
+  .cqa-menu a { justify-content: flex-start; padding: 0 12px; }
+  .cqa-menu .cqa-pill { position: static; margin-left: auto; }
+  .cqa-user { justify-content: flex-start; padding: 12px 8px 4px; }
+  .cqa-side__tools { flex-direction: row; }
+  .cqa-mtop { display: flex; }
+  .cqa-scrim { display: block; position: fixed; inset: 0; z-index: 29; background: var(--cqa-overlay); opacity: 0; pointer-events: none; transition: opacity var(--cqa-base); }
+  .cqa-root[data-nav-open="true"] .cqa-scrim { opacity: 1; pointer-events: auto; }
+  .cqa-main { padding: 14px 12px 20px; }
+  .cqa-root h1 { font-size: var(--cqa-fs-xl); }
+}

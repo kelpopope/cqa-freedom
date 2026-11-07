@@ -1,0 +1,20 @@
+/* Движение: только как отклик и один короткий вход экрана. При reduce — выключено. */
+@keyframes cqa-rot { to { transform: rotate(360deg); } }
+@keyframes cqa-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes cqa-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes cqa-pop { from { opacity: 0; transform: translateY(6px) scale(0.985); } to { opacity: 1; transform: none; } }
+@keyframes cqa-flash { 0% { background-color: var(--cqa-flash); } 100% { background-color: transparent; } }
+@keyframes cqa-ring { 0% { box-shadow: 0 0 0 0 rgba(77, 181, 96, 0.45); } 100% { box-shadow: 0 0 0 10px rgba(77, 181, 96, 0); } }
+@keyframes cqa-toast-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* fill-mode backwards: после окончания анимация ничего не удерживает (иначе transform ломает position: fixed у потомков). */
+.cqa-enter { animation: cqa-rise 260ms var(--cqa-ease) backwards; }
+.cqa-stagger > * { animation: cqa-rise 280ms var(--cqa-ease) backwards; animation-delay: calc(var(--i, 0) * 28ms); }
+.cqa-modal-back, .cqa-cmd-back { animation: cqa-fade 180ms ease both; }
+.cqa-modal, .cqa-cmd, .cqa-pop { animation: cqa-pop 200ms var(--cqa-ease) both; }
+.cqa-toast { animation: cqa-toast-in 220ms var(--cqa-ease) both; }
+.cqa-toast.is-leaving { opacity: 0; transform: translateY(6px); transition: opacity 200ms, transform 200ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cqa-root *, .cqa-root *::before, .cqa-root *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; transition-duration: 1ms !important; scroll-behavior: auto !important; }
+}

@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Макет: карточка диалога</title>
+<style>
+:root{
+  --green:#4DB560; --green-dark:#1D5A3A; --ink:#1B1A17;
+  --bg:#F3F4F1; --surface:#FFFFFF; --surface-2:#F6F7F4; --surface-3:#ECEEE9;
+  --line:#E3E6DF; --line-2:#D3D8CF;
+  --text:#1B1A17; --text-2:#51574F; --text-3:#80867E;
+  --ok:#2E7D45; --ok-bg:#EAF4EC;
+  --bad:#B4372C; --bad-bg:#FBEFEC; --bad-line:#F0CFC9;
+  --warn:#946214; --warn-bg:#FBF3E3;
+  --na:#80867E;
+  --font:"Segoe UI",Inter,system-ui,-apple-system,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font:14px/1.5 var(--font);color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1;min-width:1280px}
+button{font:inherit;color:inherit;cursor:pointer}
+.ico{width:16px;height:16px;flex:none}
+
+/* шапка */
+.hdr{height:56px;display:flex;align-items:center;gap:28px;padding:0 20px;background:var(--surface);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px}
+.brand b{font-weight:700;font-size:15px;letter-spacing:.04em}
+.brand span{color:var(--text-3);padding-left:12px;border-left:1px solid var(--line-2)}
+.nav{display:flex;height:100%}
+.nav a{display:flex;align-items:center;gap:8px;padding:0 14px;color:var(--text-2);text-decoration:none;font-weight:500;position:relative}
+.nav a.on{color:var(--text)}
+.nav a.on:after{content:"";position:absolute;left:14px;right:14px;bottom:-1px;height:2px;background:var(--green-dark);border-radius:2px}
+.cnt{min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--surface-3);font-size:12px;display:inline-grid;place-items:center;color:var(--text-2)}
+.hdr-r{margin-left:auto;display:flex;align-items:center;gap:14px}
+.seg{display:inline-flex;padding:3px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px}
+.seg button{border:0;background:none;height:28px;padding:0 12px;border-radius:6px;font-size:13px;color:var(--text-2)}
+.seg button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(27,26,23,.08)}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--green-dark);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:600}
+
+/* раскладка */
+.app{display:grid;grid-template-columns:300px minmax(0,1fr) 440px;height:calc(100vh - 56px)}
+.col{min-height:0;display:flex;flex-direction:column}
+.scroll{overflow:auto;min-height:0;flex:1}
+
+/* очередь */
+.queue{background:var(--surface);border-right:1px solid var(--line)}
+.q-head{padding:16px 16px 12px}
+.q-title{display:flex;align-items:baseline;justify-content:space-between}
+.q-title h2{margin:0;font-size:16px;font-weight:600}
+.q-title span{color:var(--text-3);font-size:13px}
+.q-tabs{display:flex;gap:4px;margin-top:12px}
+.q-tabs button{white-space:nowrap;border:0;background:none;height:28px;padding:0 10px;border-radius:6px;font-size:13px;color:var(--text-2)}
+.q-tabs button.on{background:var(--surface-3);color:var(--text)}
+.q-tabs .n{color:var(--text-3);margin-left:4px}
+.q-tabs .n.r{color:var(--bad)}
+.q-search{margin-top:10px;position:relative}
+.q-search input{width:100%;height:34px;border:1px solid var(--line-2);border-radius:8px;padding:0 10px 0 32px;font:inherit;background:var(--surface)}
+.q-search svg{position:absolute;left:10px;top:9px;color:var(--text-3)}
+.q-group{padding:14px 16px 6px;font-size:12px;color:var(--text-3)}
+.q-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:10px 16px;border-left:3px solid transparent;cursor:pointer}
+.q-item:hover{background:var(--surface-2)}
+.q-item.on{background:#EEF4EE;border-left-color:var(--green-dark)}
+.q-id{font-weight:500}
+.q-sc{font-weight:600;text-align:right}
+.q-sc.low{color:var(--bad)}
+.q-sub{font-size:13px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.q-st{font-size:12px;text-align:right;white-space:nowrap}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px}
+
+/* переписка */
+.conv{background:var(--bg)}
+.c-head{display:flex;align-items:center;gap:16px;padding:16px 28px;background:var(--surface);border-bottom:1px solid var(--line)}
+.c-head h1{margin:0;font-size:20px;font-weight:600;letter-spacing:-.01em}
+.c-meta{color:var(--text-2)}
+.c-head .r{margin-left:auto;display:flex;gap:8px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 12px;border-radius:8px;border:1px solid var(--line-2);background:var(--surface);font-weight:500;font-size:13px}
+.btn:hover{background:var(--surface-2)}
+.btn.icon{width:34px;padding:0;justify-content:center}
+.btn.pri{background:var(--green-dark);border-color:var(--green-dark);color:#fff}
+.steps{display:flex;align-items:center;gap:10px;padding:12px 28px;background:var(--surface);border-bottom:1px solid var(--line);font-size:13px;color:var(--text-2)}
+.step{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.step .t{color:var(--text-3)}
+.step.bad{color:var(--bad)}
+.sep{width:24px;height:1px;background:var(--line-2)}
+.thread{padding:24px 28px 40px;display:flex;flex-direction:column;gap:14px;max-width:880px;margin:0 auto;width:100%}
+.ctx{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.ctx-h{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-3)}
+.ctx p{margin:8px 0 0;font-size:15px}
+.ctx .more{margin-top:10px;border:0;background:none;padding:0;color:var(--green-dark);font-weight:500;font-size:13px}
+.sys{text-align:center;font-size:12px;color:var(--text-3);display:flex;align-items:center;gap:12px}
+.sys:before,.sys:after{content:"";flex:1;height:1px;background:var(--line)}
+.msg{display:flex;gap:12px;align-items:flex-end}
+.msg.op{flex-direction:row-reverse}
+.av{width:28px;height:28px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:11px;font-weight:600}
+.av.cl{background:var(--surface-3);color:var(--text-2)}
+.av.op{background:var(--green-dark);color:#fff}
+.bub{max-width:68%;padding:10px 14px;border-radius:14px;font-size:15px;line-height:1.55;position:relative}
+.cl .bub{background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:4px}
+.op .bub{background:#E9F2EA;border-bottom-right-radius:4px}
+.bub .m{display:flex;gap:8px;font-size:12px;color:var(--text-3);margin-bottom:2px}
+.op .bub .m{justify-content:flex-end}
+.bub.flag{background:var(--bad-bg);box-shadow:0 0 0 1.5px var(--bad-line)}
+.bub.lit{box-shadow:0 0 0 2px var(--green-dark)}
+.tags{display:flex;gap:6px;margin-top:8px;justify-content:flex-end;flex-wrap:wrap}
+.tag{font-size:12px;height:22px;padding:0 8px;border-radius:11px;display:inline-flex;align-items:center;gap:6px;background:var(--surface);color:var(--bad);border:1px solid var(--bad-line)}
+.tag.w{color:var(--warn);border-color:#EBD8B4}
+
+/* оценка */
+.eval{background:var(--surface);border-left:1px solid var(--line)}
+.e-top{padding:20px 24px 18px;border-bottom:1px solid var(--line)}
+.e-label{font-size:13px;color:var(--text-3);display:flex;justify-content:space-between}
+.score{display:flex;align-items:baseline;gap:10px;margin-top:6px}
+.score b{font-size:48px;line-height:1;font-weight:600;letter-spacing:-.02em;color:var(--bad)}
+.score span{color:var(--text-3)}
+.verdict{margin-left:auto;font-size:13px;font-weight:600;color:var(--bad);background:var(--bad-bg);padding:4px 10px;border-radius:6px}
+.bar{display:flex;gap:3px;height:8px;margin-top:16px}
+.bar i{display:block;height:100%;border-radius:4px;background:var(--surface-3);overflow:hidden;position:relative}
+.bar i b{display:block;height:100%;background:var(--green)}
+.bar i.m b{background:#D9A03F}
+.bar i.na{background:none;border:1px dashed var(--line-2);flex:0 0 14px!important}
+.bar-l{display:flex;justify-content:space-between;font-size:12px;color:var(--text-3);margin-top:8px}
+.summary{margin-top:14px;font-size:14px;line-height:1.6;color:var(--text)}
+.alert{margin:16px 24px 0;padding:12px 14px;border-radius:10px;background:var(--bad-bg);display:flex;gap:10px}
+.alert .h{font-weight:600;color:var(--bad)}
+.alert .d{color:var(--text-2);font-size:13px;margin-top:2px}
+.alert a{color:var(--bad);font-weight:500}
+.sec{padding:18px 24px 0}
+.sec-h{display:flex;justify-content:space-between;font-size:12px;color:var(--text-3);margin-bottom:6px}
+.sec-h b{color:var(--text-2);font-weight:500}
+.cr{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.sec .cr:last-child{border-bottom:0}
+.cr .ti{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cr .pts{font-weight:500;text-align:right}
+.cr .pts small{color:var(--text-3);font-weight:400}
+.st{width:20px;height:20px;border-radius:50%;display:grid;place-items:center}
+.st.ok{background:var(--ok-bg);color:var(--ok)}
+.st.no{background:var(--bad-bg);color:var(--bad)}
+.st.na{border:1.5px dashed var(--line-2);color:var(--na)}
+.st.mid{background:var(--warn-bg);color:var(--warn)}
+.na-t{color:var(--text-3)}
+.open{background:var(--surface-2);margin:4px -12px 6px;padding:12px;border-radius:10px;border-bottom:0}
+.det{grid-column:2/4;display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.det p{margin:0;line-height:1.6}
+.quote{border-left:2px solid var(--bad);padding:2px 0 2px 12px}
+.quote .qm{font-size:12px;color:var(--text-3)}
+.quote .qt{font-size:14px;margin-top:2px}
+.det .act{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--text-3)}
+.det .act .btn{height:28px;font-size:12px;margin-left:auto}
+.link{color:var(--green-dark);font-weight:500;font-size:13px;border:0;background:none;padding:0}
+.e-foot{margin:20px 24px 24px;padding-top:14px;border-top:1px solid var(--line);font-size:12px;color:var(--text-3);display:flex;flex-direction:column;gap:6px}
+.e-foot .rep{display:flex;align-items:center;gap:6px;color:var(--ok)}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="brand">
+    <svg width="22" height="26" viewBox="0 0 22 26" aria-hidden="true"><path d="M0 0h22v14c0 6-5 10-11 12C5 24 0 20 0 14z" fill="#4DB560"/><path d="M11 0h11v14c0 6-5 10-11 12z" fill="#1D5A3A"/></svg>
+    <b>FREEDOM</b><span>Контроль качества</span>
+  </div>
+  <nav class="nav">
+    <a class="on" href="#">Диалоги</a>
+    <a href="#">Чек-лист</a>
+    <a href="#">Апелляции <span class="cnt">2</span></a>
+  </nav>
+  <div class="hdr-r">
+    <div class="seg"><button>Оператор</button><button class="on">Проверяющий</button></div>
+    <div class="avatar">СВ</div>
+  </div>
+</header>
+
+<div class="app">
+
+  <!-- Очередь -->
+  <aside class="col queue">
+    <div class="q-head">
+      <div class="q-title"><h2>Диалоги</h2><span>DEV, 65</span></div>
+      <div class="q-tabs">
+        <button class="on">Все<span class="n">65</span></button>
+        <button>Нарушения<span class="n r">8</span></button>
+        <button>Проверить<span class="n">4</span></button>
+      </div>
+      <div class="q-search">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input placeholder="Поиск по ID или оператору">
+      </div>
+    </div>
+    <div class="scroll">
+      <div class="q-group">Требуют внимания</div>
+      <div class="q-item on"><div class="q-id">p1-ru-022</div><div class="q-sc low">25,63</div><div class="q-sub">Кирилл, чат, RU</div><div class="q-st" style="color:var(--bad)"><span class="dot" style="background:var(--bad)"></span>Обход компании</div></div>
+      <div class="q-item"><div class="q-id">p1-ru-009</div><div class="q-sc low">45,50</div><div class="q-sub">Руслан, чат, RU</div><div class="q-st" style="color:var(--bad)"><span class="dot" style="background:var(--bad)"></span>Раскрытие данных</div></div>
+      <div class="q-item"><div class="q-id">p1-ru-029</div><div class="q-sc low">50,63</div><div class="q-sub">Алексей, чат, RU</div><div class="q-st" style="color:var(--bad)"><span class="dot" style="background:var(--bad)"></span>Оскорбление</div></div>
+      <div class="q-item"><div class="q-id">p1-en-007</div><div class="q-sc">63,08</div><div class="q-sub">Chris, чат, EN</div><div class="q-st"><span class="dot" style="background:#D9A03F"></span>Апелляция</div></div>
+      <div class="q-item"><div class="q-id">p4-ru-001</div><div class="q-sc">71,40</div><div class="q-sub">Звонок, RU, 4:05</div><div class="q-st"><span class="dot" style="background:#D9A03F"></span>Проверить</div></div>
+      <div class="q-group">Оценены</div>
+      <div class="q-item"><div class="q-id">p1-ru-001</div><div class="q-sc">100,00</div><div class="q-sub">Алина, чат, RU</div><div class="q-st" style="color:var(--text-3)"><span class="dot" style="background:var(--green)"></span>Без замечаний</div></div>
+      <div class="q-item"><div class="q-id">p1-kz-003</div><div class="q-sc">100,00</div><div class="q-sub">Дана, чат, KZ</div><div class="q-st" style="color:var(--text-3)"><span class="dot" style="background:var(--green)"></span>Без замечаний</div></div>
+      <div class="q-item"><div class="q-id">p4-ru-004</div><div class="q-sc">95,00</div><div class="q-sub">Звонок, RU, 7:16</div><div class="q-st" style="color:var(--text-3)"><span class="dot" style="background:var(--green)"></span>Без замечаний</div></div>
+      <div class="q-item"><div class="q-id">p1-ru-011</div><div class="q-sc">100,00</div><div class="q-sub">Лиза, чат, RU</div><div class="q-st" style="color:var(--text-3)"><span class="dot" style="background:var(--green)"></span>Без замечаний</div></div>
+    </div>
+  </aside>
+
+  <!-- Переписка -->
+  <main class="col conv">
+    <div class="c-head">
+      <h1>p1-ru-022</h1>
+      <span class="c-meta">Чат на русском, оператор Кирилл, 3 минуты</span>
+      <div class="r">
+        <button class="btn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/></svg>Переоценить</button>
+        <button class="btn icon" title="Предыдущий"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m18 15-6-6-6 6"/></svg></button>
+        <button class="btn icon" title="Следующий"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m6 9 6 6 6-6"/></svg></button>
+      </div>
+    </div>
+    <div class="steps">
+      <span class="step"><span class="dot" style="background:var(--text-3)"></span>Бот передал оператору<span class="t">00:33</span></span><span class="sep"></span>
+      <span class="step"><span class="dot" style="background:var(--green)"></span>Оператор ответил через 50 с<span class="t">01:23</span></span><span class="sep"></span>
+      <span class="step bad"><span class="dot" style="background:var(--bad)"></span>Предложение в обход компании<span class="t">01:23</span></span><span class="sep"></span>
+      <span class="step bad"><span class="dot" style="background:var(--bad)"></span>Оператор закрыл чат без прощания<span class="t">03:00</span></span>
+    </div>
+    <div class="scroll">
+      <div class="thread">
+        <div class="ctx">
+          <div class="ctx-h"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 8V4M8 14h.01M16 14h.01"/></svg>До подключения оператора клиент написал боту</div>
+          <p>Хочу вложиться в облигации. Подскажете, что лучше купить?</p>
+          <p>Мне нужен человек. Подключите оператора.</p>
+          <button class="more">Показать переписку с ботом, 6 сообщений</button>
+        </div>
+        <div class="sys">00:33, чат передан оператору</div>
+        <div class="msg op">
+          <div class="av op">К</div>
+          <div>
+            <div class="bub flag lit"><div class="m"><span>Оператор Кирилл</span><span>01:23</span></div>Здравствуйте, я Кирилл. Переведите деньги мне на карту — я сам вложу их с выгодой.</div>
+            <div class="tags"><span class="tag">08 Грубая ошибка</span><span class="tag">04 Консультация</span><span class="tag">02 Потребность</span></div>
+          </div>
+        </div>
+        <div class="msg cl">
+          <div class="av cl">К</div>
+          <div class="bub"><div class="m"><span>Клиент</span><span>01:39</span></div>Вы серьёзно? Я спрашивал про приложение.</div>
+        </div>
+        <div class="msg op">
+          <div class="av op">К</div>
+          <div>
+            <div class="bub flag"><div class="m"><span>Оператор Кирилл</span><span>01:56</span></div>Да, это моё личное предложение, через компанию оформлять не нужно.</div>
+            <div class="tags"><span class="tag">08 Грубая ошибка</span><span class="tag">05 Эмпатия</span></div>
+          </div>
+        </div>
+        <div class="msg cl">
+          <div class="av cl">К</div>
+          <div class="bub"><div class="m"><span>Клиент</span><span>02:32</span></div>Нет, спасибо.</div>
+        </div>
+        <div class="sys" style="color:var(--bad)">03:00, оператор закрыл чат</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Оценка -->
+  <aside class="col eval">
+    <div class="scroll">
+      <div class="e-top">
+        <div class="e-label"><span>Итог по чек-листу</span><span>версия 1</span></div>
+        <div class="score"><b>25,63</b><span>из 100</span><span class="verdict">Критично</span></div>
+        <div class="bar">
+          <i style="flex:12.5"><b style="width:100%"></b></i>
+          <i style="flex:18.75"><b style="width:0"></b></i>
+          <i class="na"></i>
+          <i style="flex:25"><b style="width:0"></b></i>
+          <i style="flex:18.75"><b style="width:0"></b></i>
+          <i class="m" style="flex:18.75"><b style="width:70%"></b></i>
+          <i style="flex:6.25"><b style="width:0"></b></i>
+        </div>
+        <div class="bar-l"><span>Ширина отрезка — вес критерия</span><span>N/A: идентификация</span></div>
+        <p class="summary">Вместо помощи с выбором облигаций оператор предложил перевести деньги ему лично и закрыл чат без прощания. Консультации по существу не было.</p>
+      </div>
+
+      <div class="alert">
+        <svg class="ico" style="color:var(--bad);margin-top:2px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+        <div><div class="h">Грубая ошибка: услуга в обход компании</div><div class="d">Не влияет на балл, требует реакции руководителя. <a href="#">Реплика 01:23</a></div></div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-h"><b>Начало и понимание запроса</b><span>12,50 из 31,25</span></div>
+        <div class="cr"><span class="st ok"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg></span><span class="ti">Установление контакта</span><span class="pts">12,50</span></div>
+        <div class="cr"><span class="st no"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6 6 18M6 6l12 12"/></svg></span><span class="ti">Выявление потребности</span><span class="pts">0 <small>из 18,75</small></span></div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-h"><b>Безопасность и решение</b><span>0 из 25</span></div>
+        <div class="cr"><span class="st na"></span><span class="ti na-t">Идентификация</span><span class="pts na-t">N/A</span></div>
+        <div class="cr open">
+          <span class="st no"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6 6 18M6 6l12 12"/></svg></span><span class="ti" style="font-weight:600">Корректная и полная консультация</span><span class="pts">0 <small>из 25</small></span>
+          <div class="det">
+            <p>Ответа по существу нет: вместо помощи с выбором в приложении — предложение перевести деньги лично. Шкала: 0 из 20.</p>
+            <div class="quote"><div class="qm">Оператор, 01:23</div><div class="qt">«Переведите деньги мне на карту — я сам вложу их с выгодой.»</div></div>
+            <div class="quote"><div class="qm">Оператор, 01:56</div><div class="qt">«…через компанию оформлять не нужно.»</div></div>
+            <div class="act"><button class="link">Показать в переписке</button><span>Вес 20 → 25 из-за N/A</span><button class="btn">Оспорить</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-h"><b>Ведение и завершение</b><span>13,13 из 43,75</span></div>
+        <div class="cr"><span class="st no"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6 6 18M6 6l12 12"/></svg></span><span class="ti">Эмпатия и клиентоориентированность</span><span class="pts">0 <small>из 18,75</small></span></div>
+        <div class="cr"><span class="st mid"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14"/></svg></span><span class="ti">Управление диалогом</span><span class="pts">13,13 <small>из 18,75</small></span></div>
+        <div class="cr"><span class="st no"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6 6 18M6 6l12 12"/></svg></span><span class="ti">Завершение</span><span class="pts">0 <small>из 6,25</small></span></div>
+      </div>
+
+      <div class="e-foot">
+        <span class="rep"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 6 9 17l-5-5"/></svg>Воспроизводимо: 2 прогона, ответы совпали</span>
+        <span>gpt-6.1-sol, 3,8 с, $0,07 за оценку</span>
+      </div>
+    </div>
+  </aside>
+</div>
+</body>
+</html>

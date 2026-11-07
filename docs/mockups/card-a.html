@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Макет A: проверка диалога</title>
+<style>
+:root{
+  --green:#4DB560; --green-dark:#1D5A3A; --green-soft:#EAF4E9; --green-line:#CFE6CC; --ink:#1B1A17;
+  --bg:#FFFFFF; --surface-2:#F6F7F4; --surface-3:#EEF0EB; --line:#E5E8E1; --line-2:#D3D8CF;
+  --text:#1B1A17; --text-2:#4F564D; --text-3:#7D847B;
+  --bad:#B23A2E; --bad-bg:#FCEFEC; --bad-line:#F1CFC9;
+  --warn:#8A5A10; --warn-bg:#FBF1DD;
+  --font:"Segoe UI",Inter,system-ui,-apple-system,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font:14px/1.5 var(--font);color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1;min-width:1280px}
+button{font:inherit;color:inherit;cursor:pointer}
+svg.i{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+svg.s{width:15px;height:15px}
+
+.top{height:64px;display:flex;align-items:center;gap:40px;padding:0 40px;border-bottom:1px solid var(--line)}
+.logo{display:flex;align-items:center;gap:10px;line-height:1}
+.logo b{display:block;font-size:17px;font-weight:700;letter-spacing:.02em}
+.logo small{display:block;font-size:11px;font-weight:700;letter-spacing:.12em;margin-top:2px}
+.nav{display:flex;height:100%;gap:8px}
+.nav a{display:flex;align-items:center;padding:0 14px;color:var(--text-2);text-decoration:none;font-size:15px;font-weight:500;position:relative}
+.nav a.on{color:var(--text);font-weight:600}
+.nav a.on:after{content:"";position:absolute;left:14px;right:14px;bottom:-1px;height:3px;background:var(--green-dark);border-radius:3px 3px 0 0}
+.nav .n{margin-left:8px;min-width:20px;height:20px;border-radius:10px;background:var(--surface-3);font-size:12px;display:inline-grid;place-items:center;color:var(--text-2)}
+.top-r{margin-left:auto;display:flex;align-items:center;gap:14px}
+.role{display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;border:1px solid var(--line-2);border-radius:10px;color:var(--text-2)}
+.role b{color:var(--text);font-weight:500}
+.av{width:36px;height:36px;border-radius:50%;background:var(--green-dark);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:600}
+
+.page{padding:20px 40px 24px}
+.crumbs{color:var(--text-3)}
+.crumbs b{color:var(--text);font-weight:500}
+.title{display:flex;align-items:center;gap:24px;margin-top:8px}
+.title h1{margin:0;font-size:32px;font-weight:600;letter-spacing:-.01em}
+.score{margin-left:auto;display:flex;align-items:baseline;gap:8px;padding-right:24px;border-right:1px solid var(--line)}
+.score b{font-size:40px;line-height:1;font-weight:600;color:var(--green-dark);letter-spacing:-.02em}
+.score span{font-size:22px;color:var(--text-3)}
+.flag{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:10px;background:var(--bad-bg);color:var(--bad);font-weight:600}
+.howto{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;border:1px solid var(--line-2);border-radius:10px;background:#fff;font-weight:500}
+.meta{display:flex;align-items:center;margin-top:16px;padding-bottom:16px;border-bottom:1px solid var(--line);color:var(--text-3);font-size:14px}
+.meta span{padding:0 20px;border-left:1px solid var(--line)}
+.meta span:first-child{padding-left:0;border-left:0}
+.meta b{color:var(--text);font-weight:600}
+.badge{display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:6px;font-weight:600;font-size:13px}
+.badge.w{background:var(--warn-bg);color:var(--warn)}
+
+.body{display:grid;grid-template-columns:minmax(0,1fr) 520px;border-bottom:1px solid var(--line)}
+.thread{padding:8px 24px 8px 0;border-right:1px solid var(--line);max-height:calc(100vh - 420px);min-height:320px;overflow:auto}
+.ctx{display:flex;align-items:center;gap:12px;margin:8px 0;padding:10px 14px;border:1px dashed var(--line-2);border-radius:10px;color:var(--text-2);font-size:13px}
+.ctx b{color:var(--text);font-weight:500}
+.ctx button{margin-left:auto;border:0;background:none;color:var(--green-dark);font-weight:500;padding:0;white-space:nowrap}
+.m{display:grid;grid-template-columns:76px 40px minmax(0,1fr);gap:12px;padding:12px 16px;border-radius:10px;border-left:3px solid transparent}
+.m .ix{font-weight:600;font-size:13px}
+.m .tm{display:block;color:var(--text-3);font-size:13px;font-weight:400}
+.ava{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:14px}
+.ava.c{background:var(--surface-3);color:var(--text-2)}
+.ava.o{background:var(--green-soft);color:var(--green-dark)}
+.who{font-weight:600}
+.who span{font-weight:400;color:var(--text-3);margin-left:6px;font-size:13px}
+.tx{font-size:15px;margin-top:2px}
+.m.sel{background:var(--green-soft);border-left-color:var(--green-dark)}
+.m.sel .tx{color:var(--text)}
+.mark{display:inline-flex;margin-left:8px;height:20px;padding:0 6px;border-radius:5px;background:var(--bad);color:#fff;font-size:11px;font-weight:600;align-items:center;vertical-align:1px}
+.inl{margin:2px 0 6px 128px;display:inline-flex;align-items:center;gap:8px;padding:5px 10px;border-radius:8px;background:var(--bad-bg);color:var(--bad);font-size:13px}
+.sys{display:flex;align-items:center;gap:12px;margin:6px 0 6px 128px;font-size:12px;color:var(--text-3)}
+.sys:after{content:"";flex:1;height:1px;background:var(--line)}
+
+.detail{padding:20px 0 20px 32px}
+.d-h{display:flex;align-items:baseline;justify-content:space-between;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.d-h h2{margin:0;font-size:22px;font-weight:600}
+.d-h .p{font-size:22px;color:var(--text-3)}
+.d-h .p b{color:var(--bad)}
+.ans{display:flex;gap:8px;margin-top:14px}
+.ans span{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:13px;font-size:13px;font-weight:600}
+.ans .no{background:var(--bad-bg);color:var(--bad)}
+.ans .conf{background:var(--green-soft);color:var(--green-dark);font-weight:500}
+.lbl{margin-top:16px;color:var(--text-3);font-size:13px}
+.d-t{margin-top:4px;font-size:15px;line-height:1.6}
+.evb{margin-top:6px;display:flex;align-items:center;gap:12px;height:44px;padding:0 14px;border-radius:10px;background:var(--green-soft);color:var(--green-dark);font-weight:600;border:0;width:100%;text-align:left}
+.evb .i:last-child{margin-left:auto}
+.q{margin-top:10px;padding-left:14px;border-left:3px solid var(--green);font-size:15px;line-height:1.6;color:var(--text-2)}
+.calc{margin-top:16px;padding:10px 12px;border-radius:10px;background:var(--surface-2);font-size:13px;color:var(--text-2)}
+.d-a{margin-top:14px;display:flex;align-items:center;justify-content:space-between}
+.d-a a{color:var(--text-2);text-decoration:underline;text-underline-offset:3px}
+
+.strip{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));border-bottom:1px solid var(--line)}
+.grp{display:contents}
+.sg{grid-row:1;font-size:12px;color:var(--text-3);padding:10px 12px 0;white-space:nowrap}
+.cell{grid-row:2;padding:6px 12px 14px;border-radius:10px;margin:4px 2px 8px;position:relative;cursor:pointer}
+.cell:hover{background:var(--surface-2)}
+.cell+.cell:before{content:"";position:absolute;left:-3px;top:10px;bottom:16px;width:1px;background:var(--line)}
+.cell .nm{font-size:13px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell .nm b{color:var(--text);font-weight:600;margin-right:4px}
+.cell .vl{margin-top:4px;font-size:17px;color:var(--text-3)}
+.cell .vl b{color:var(--green-dark);font-weight:600}
+.cell.sel{background:var(--green-soft)}
+.cell.x .vl b{color:var(--bad)}
+.cell.na .vl{color:var(--text-3);font-size:15px}
+.cell.fl .vl{color:var(--bad);font-weight:600;font-size:15px}
+.foot{display:flex;align-items:center;gap:12px;padding-top:18px}
+.foot .meta2{color:var(--text-3);font-size:13px}
+.btn{height:46px;padding:0 24px;border-radius:10px;border:1px solid var(--line-2);background:#fff;font-weight:600;font-size:15px}
+.btn.pri{background:var(--green-dark);border-color:var(--green-dark);color:#fff}
+.foot .r{margin-left:auto;display:flex;gap:12px}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="logo">
+    <svg width="30" height="34" viewBox="0 0 22 26" aria-hidden="true"><path d="M0 0h22v14c0 6-5 10-11 12C5 24 0 20 0 14z" fill="#4DB560"/><path d="M11 0h11v14c0 6-5 10-11 12z" fill="#1D5A3A"/></svg>
+    <div><b>FREEDOM</b><small>BROKER</small></div>
+  </div>
+  <nav class="nav">
+    <a href="#">Обзор</a>
+    <a class="on" href="#">Диалоги</a>
+    <a href="#">Апелляции<span class="n">2</span></a>
+    <a href="#">Чек-лист</a>
+  </nav>
+  <div class="top-r">
+    <div class="role">Роль: <b>Контроль качества</b><svg class="i s" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></div>
+    <div class="av">ЕМ</div>
+  </div>
+</header>
+
+<main class="page">
+  <div class="crumbs">Диалоги / <b>p1-ru-041</b></div>
+  <div class="title">
+    <h1>Проверка диалога</h1>
+    <div class="score"><b>78,95</b><span>/ 100</span></div>
+    <span class="flag"><svg class="i s" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>Грубое нарушение</span>
+    <button class="howto"><svg class="i s" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>Как считается</button>
+  </div>
+  <div class="meta">
+    <span>Диалог: <b>p1-ru-041</b></span>
+    <span>Оператор: <b>Кирилл</b></span>
+    <span>Канал: <b>Чат</b></span>
+    <span>Язык: <b>Русский</b></span>
+    <span>Длительность: <b>3:20</b></span>
+    <span>Статус: <span class="badge w">Нужна проверка</span></span>
+  </div>
+
+  <div class="body">
+    <div class="thread">
+      <div class="ctx"><svg class="i s" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 8V4M8 14h.01M16 14h.01"/></svg><span><b>До оператора клиент написал боту:</b> «Почему не проходит покупка облигаций?», затем «Пишет «отклонён». Подключите оператора».</span><button>Показать, 4 сообщения</button></div>
+      <div class="sys">00:33, чат передан оператору</div>
+      <div class="m"><div class="ix">#05<span class="tm">01:12</span></div><div class="ava o">К</div><div><div class="who">Кирилл<span>Оператор</span></div><div class="tx">Здравствуйте, Алия! Меня зовут Кирилл. Сейчас посмотрю, в чём дело.</div></div></div>
+      <div class="m"><div class="ix">#06<span class="tm">01:40</span></div><div class="ava c">А</div><div><div class="who">Алия<span>Клиент</span></div><div class="tx">Нужно прислать номер счёта?</div></div></div>
+      <div class="m sel"><div class="ix">#07<span class="tm">02:05</span></div><div class="ava o">К</div><div><div class="who">Кирилл<span>Оператор</span><span class="mark">03</span><span class="mark">08</span></div><div class="tx">Не нужно, я уже вижу ваш счёт. Ограничение связано с доступным остатком: средств не хватает с учётом комиссии.</div></div></div>
+      <div class="inl"><svg class="i s" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>До этой реплики личность клиента не подтверждена</div>
+      <div class="m"><div class="ix">#08<span class="tm">02:31</span></div><div class="ava c">А</div><div><div class="who">Алия<span>Клиент</span></div><div class="tx">Поняла. Как пополнить счёт?</div></div></div>
+      <div class="m"><div class="ix">#09<span class="tm">02:58</span></div><div class="ava o">К</div><div><div class="who">Кирилл<span>Оператор</span></div><div class="tx">Откройте приложение: «Меню → Пополнить». Деньги поступят в течение нескольких минут.</div></div></div>
+      <div class="sys">03:20, клиент покинул чат</div>
+    </div>
+
+    <aside class="detail">
+      <div class="d-h"><h2>03 Идентификация</h2><span class="p"><b>0</b> / 21,05</span></div>
+      <div class="ans"><span class="no">Нет</span><span class="conf">Уверенность AI: высокая</span></div>
+      <div class="lbl">Пояснение</div>
+      <div class="d-t">Клиент предложил прислать номер счёта, но оператор отказался от проверки личности и сразу сообщил сведения о счёте.</div>
+      <div class="lbl">Где ожидалось действие</div>
+      <div class="d-t">Между репликами #06 и #07: перед ответом о состоянии счёта</div>
+      <div class="lbl">Доказательство</div>
+      <button class="evb"><svg class="i" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Реплика #07, 02:05<svg class="i" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      <div class="q">«Не нужно, я уже вижу ваш счёт. Ограничение связано с доступным остатком»</div>
+      <div class="calc">Вес 20 → 21,05: критерий «Завершение» неприменим (клиент покинул чат), его вес распределён между остальными</div>
+      <div class="d-a"><a href="#">Оспорить оценку</a><span style="color:var(--text-3);font-size:13px">Ответ «Да / Нет», вес 20</span></div>
+    </aside>
+  </div>
+
+  <div class="strip">
+    <div class="sg" style="grid-column:1/3">Начало и понимание, 26,32 из 26,32</div>
+    <div class="sg" style="grid-column:3/5">Безопасность и решение, 21,05 из 42,11</div>
+    <div class="sg" style="grid-column:5/8">Ведение и завершение, 31,58 из 31,58</div>
+    <div class="sg" style="grid-column:8/9">Без баллов</div>
+    <div class="cell"><div class="nm"><b>01</b>Контакт</div><div class="vl"><b>10,53</b> / 10,53</div></div>
+    <div class="cell"><div class="nm"><b>02</b>Потребность</div><div class="vl"><b>15,79</b> / 15,79</div></div>
+    <div class="cell sel x"><div class="nm"><b>03</b>Идентификация</div><div class="vl"><b>0</b> / 21,05</div></div>
+    <div class="cell"><div class="nm"><b>04</b>Консультация</div><div class="vl"><b>21,05</b> / 21,05</div></div>
+    <div class="cell"><div class="nm"><b>05</b>Эмпатия</div><div class="vl"><b>15,79</b> / 15,79</div></div>
+    <div class="cell"><div class="nm"><b>06</b>Ведение диалога</div><div class="vl"><b>15,79</b> / 15,79</div></div>
+    <div class="cell na"><div class="nm"><b>07</b>Завершение</div><div class="vl">N/A, клиент ушёл</div></div>
+    <div class="cell fl"><div class="nm"><b>08</b>Грубые нарушения</div><div class="vl">Раскрытие данных</div></div>
+  </div>
+
+  <div class="foot">
+    <span class="meta2">Оценено gpt-6.1-sol, $0,07, повторный прогон совпал. Чек-лист версии 1</span>
+    <div class="r"><button class="btn">Изменить оценку</button><button class="btn pri">Подтвердить проверку</button></div>
+  </div>
+</main>
+</body>
+</html>
