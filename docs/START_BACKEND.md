@@ -1,4 +1,4 @@
-# Абука, старт за 15 минут
+# Торехан Абылайхан, старт за 15 минут
 
 Ты — участник **A**: сервер + AI-оценка + точность. Интерфейс делает напарник. Весь контекст проекта уже записан в `CLAUDE.md` — твой Claude прочитает его сам.
 
@@ -30,7 +30,7 @@ git checkout -b backend/base
 Открыть Claude Code в папке репозитория и вставить:
 
 ```
-Я Абука, участник A (бэкенд + LLM + точность). Прочитай CLAUDE.md, docs/PLAN.md, docs/API_CONTRACT.md, docs/RESEARCH.md и docs/BUDGET.md.
+Я Торехан Абылайхан, участник A (бэкенд + LLM + точность). Прочитай CLAUDE.md, docs/PLAN.md, docs/API_CONTRACT.md, docs/RESEARCH.md и docs/BUDGET.md.
 Задача на первые часы — задачи A1–A6 из PLAN.md: к ~20:00 должен работать путь
 «импорт DEV из API организаторов → оценка одного диалога через gpt-6.1-sol → JSON по API_CONTRACT».
 Начни с A1 (каркас FastAPI + SQLite + раздача frontend/ + /api/health) и A4 (scoring.py с тестами — это критично для точности).

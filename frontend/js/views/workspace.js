@@ -417,7 +417,7 @@ function evalHtml(conv, ev, cl) {
         </div>
       </div>
     </div>
-      <div class="cqa-crit-h"><h2>Критерии</h2><span>версия ${ev.checklist_version}</span></div>
+      <div class="cqa-crit-h"><h2>Критерии</h2></div>
       ${secs}
       <div style="height:12px"></div>
     </div>
