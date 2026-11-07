@@ -603,7 +603,7 @@ function bindHead() {
     const b = e.currentTarget; b.disabled = true;
     try {
       const { job_id } = await api.evaluateBatch({ conversation_ids: S.list.map((x) => x.conversation_id) });
-      await new Promise((res) => { const t = setInterval(async () => { const j = await api.getJob(job_id); b.innerHTML = `<span class="cqa-spin"></span>${j.done} из ${j.total}`; if (j.status !== 'running') { clearInterval(t); res(); } }, 300); });
+      let seen = -1; await new Promise((res) => { const t = setInterval(async () => { const j = await api.getJob(job_id); b.innerHTML = `<span class="cqa-spin"></span>${j.done} из ${j.total}`; if (j.done !== seen) { seen = j.done; refreshShell(); } if (j.status !== 'running') { clearInterval(t); res(); } }, 300); });
       toast('Все диалоги оценены'); await reloadAll();
     } catch (er) { toast(er.message, 'bad'); }
     b.disabled = false; b.innerHTML = `${icon('sparkle', 'cqa-ico--sm')}Оценить все`;

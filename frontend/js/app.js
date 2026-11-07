@@ -116,7 +116,8 @@ function markNav() {
 export async function refreshShell() {
   try {
     const [list, open] = await Promise.all([api.listConversations(), api.listAppeals('open')]);
-    const ev = list.filter((x) => x.evaluation).length;
+    const ev = list.filter((x) => x.evaluation && x.evaluation.status !== 'error').length;
+    const n = root.querySelector('#cqa-ds-name'); if (n) n.textContent = store.get().groupId;
     const c = root.querySelector('#cqa-ds-count'); const bar = root.querySelector('#cqa-ds-bar');
     if (c) c.textContent = `${ev} из ${list.length} оценено`;
     if (bar) bar.style.width = `${list.length ? (ev / list.length) * 100 : 0}%`;
@@ -223,7 +224,7 @@ async function route(force = false) {
   refreshShell();
 }
 
-store.subscribe((s, patch) => { if ('role' in patch) markNav(); });
+store.subscribe((s, patch) => { if ('role' in patch) markNav(); if ('groupId' in patch) refreshShell(); });
 shell();
 window.addEventListener('hashchange', () => route());
 if (!location.hash) location.hash = defaultRoute(); else route();
