@@ -90,3 +90,29 @@
   .cqa-main { padding: 14px 12px 20px; }
   .cqa-root h1 { font-size: var(--cqa-fs-xl); }
 }
+
+/* Изменяемая ширина бокового меню (js/resizer.js) */
+.cqa-shell { transition: grid-template-columns var(--cqa-base) var(--cqa-ease); }
+.cqa-root.cqa-resizing { user-select: none; cursor: col-resize; }
+.cqa-root.cqa-resizing .cqa-shell { transition: none; }
+.cqa-side__resizer { position: absolute; top: 0; bottom: 0; right: -4px; width: 8px; z-index: 31; cursor: col-resize; touch-action: none; outline: none; }
+.cqa-side__resizer::after { content: ""; position: absolute; top: 0; bottom: 0; left: 3px; width: 2px; border-radius: 1px; background: transparent; transition: background var(--cqa-fast); }
+.cqa-side__resizer:hover::after, .cqa-root.cqa-resizing .cqa-side__resizer::after { background: var(--cqa-green); }
+.cqa-side__resizer:focus-visible::after { background: var(--cqa-green-dark); box-shadow: var(--cqa-focus); }
+.cqa-menu a { min-width: 0; }
+.cqa-menu a span:not(.cqa-pill), .cqa-logo__sub, .cqa-dataset__row span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.cqa-dataset__row { gap: 8px; }
+.cqa-dataset__row b { flex: none; }
+
+/* Рейка с иконками на десктопе (схлопнули перетаскиванием) — те же правила, что у планшетного режима */
+.cqa-root[data-side="rail"] .cqa-side { padding: 20px 10px 14px; align-items: stretch; }
+.cqa-root[data-side="rail"] .cqa-logo { justify-content: center; padding: 0; }
+.cqa-root[data-side="rail"] .cqa-logo > div, .cqa-root[data-side="rail"] .cqa-logo__sub, .cqa-root[data-side="rail"] .cqa-menu a span:not(.cqa-pill),
+.cqa-root[data-side="rail"] .cqa-dataset, .cqa-root[data-side="rail"] .cqa-user__text, .cqa-root[data-side="rail"] .cqa-user > .cqa-ico { display: none; }
+.cqa-root[data-side="rail"] .cqa-menu a { justify-content: center; padding: 0; }
+.cqa-root[data-side="rail"] .cqa-menu .cqa-pill { position: absolute; top: 2px; right: 4px; min-width: 18px; height: 18px; font-size: 11px; }
+.cqa-root[data-side="rail"] .cqa-user { justify-content: center; padding: 12px 0 4px; }
+.cqa-root[data-side="rail"] .cqa-side__tools { flex-direction: column; align-items: center; }
+
+@media (max-width: 1100px) { .cqa-side__resizer { display: none; } }
+@media (prefers-reduced-motion: reduce) { .cqa-shell { transition: none; } }

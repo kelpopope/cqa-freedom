@@ -4,6 +4,7 @@ import { store, ROLES } from './store.js';
 import { icon } from './icons.js';
 import { esc, toast } from './utils.js';
 import { openModal, openPopover } from './ui.js';
+import { initResizer } from './resizer.js';
 import * as overview from './views/overview.js';
 import * as workspace from './views/workspace.js';
 import * as appeals from './views/appeals.js';
@@ -105,6 +106,7 @@ function shell() {
   root.querySelector('#cqa-menu').addEventListener('click', () => { root.dataset.navOpen = 'false'; });
   markNav();
   refreshShell();
+  initResizer(root);
 }
 
 function markNav() {
