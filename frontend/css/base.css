@@ -17,7 +17,7 @@
 .cqa-root h1 { font-size: var(--cqa-fs-xl); font-weight: 600; letter-spacing: -0.01em; }
 .cqa-root h2 { font-size: var(--cqa-fs-lg); font-weight: 500; }
 .cqa-root h3 { font-size: var(--cqa-fs-md); font-weight: 500; }
-.cqa-root button, .cqa-root input, .cqa-root select, .cqa-root textarea { font: inherit; color: inherit; }
+.cqa-root :where(button, input, select, textarea) { font: inherit; color: inherit; }
 .cqa-root a:where(:not([class])) { color: var(--cqa-info); text-decoration: none; }
 .cqa-root a:where(:not([class])):hover { text-decoration: underline; }
 .cqa-root a[class] { color: inherit; text-decoration: none; }

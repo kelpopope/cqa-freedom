@@ -9,7 +9,8 @@ export function rawPoints(criterion, answer) {
   if (criterion.type === 'binary') return answer === 'yes' ? criterion.weight : 0;
   if (criterion.type === 'scale') {
     const max = Math.max(...criterion.scale.map((s) => s.value));
-    return max ? (criterion.weight * Number(answer)) / max : 0;
+    const v = Number(answer);
+    return max && Number.isFinite(v) ? (criterion.weight * v) / max : 0;
   }
   return 0;
 }

@@ -38,6 +38,8 @@ function marksByMessage(ev, meta) {
   for (const r of rowsOf(ev)) {
     const c = meta.get(r.criterion_id); if (!c) continue;
     const v = answerView(c, r.answer);
+    // На полях — только то, что требует внимания. Остальное подсвечивается при наведении на критерий.
+    if (v.cls !== 'no' && v.cls !== 'mid') continue;
     for (const e of r.evidence || []) {
       if (!by.has(e.index)) by.set(e.index, []);
       if (!by.get(e.index).some((x) => x.id === c.id)) by.get(e.index).push({ id: c.id, num: c.num, cls: v.cls, title: c.title });
@@ -49,15 +51,14 @@ function marksByMessage(ev, meta) {
 function msgHtml(m, marks, isCall) {
   const cls = [`cqa-msg`, `cqa-msg--${m.speaker}`, m.on_hold ? 'cqa-msg--hold' : ''].join(' ');
   const mk = (marks.get(m.index) || []).map((x) => `<button type="button" class="cqa-mark cqa-mark--${x.cls}" data-mark="${x.id}" title="${esc(x.title)}">${x.num}</button>`).join('');
-  const roleIcon = { client: 'user', operator: 'headset', bot: 'bot', system: 'info' }[m.speaker];
   return `
     <div class="${cls}" id="msg-${m.index}" data-msg="${m.index}">
       <div class="cqa-msg__gutter">${mk}</div>
       <div class="cqa-msg__body">
         <div class="cqa-msg__meta">
-          ${icon(roleIcon, 'cqa-ico--sm')}<span class="cqa-msg__role">${ROLE[m.speaker] || m.speaker}</span>
+          <span class="cqa-msg__role">${ROLE[m.speaker] || m.speaker}</span>
           <span class="cqa-msg__ts ${isCall ? 'cqa-msg__ts--link' : ''}" ${isCall ? `data-seek="${m.offset_sec}" title="Перейти к моменту записи"` : ''}>${esc(fmtTimestamp(m.timestamp))}</span>
-          ${m.on_hold ? `<span class="cqa-hold-note">${icon('pause_c', 'cqa-ico--sm')}На удержании, клиент не слышит</span>` : ''}
+          ${m.on_hold ? '<span class="cqa-hold-note">на удержании, клиент не слышит</span>' : ''}
           <span class="cqa-msg__idx">#${m.index}</span>
         </div>
         <div class="cqa-msg__text">${esc(m.text)}</div>
@@ -77,9 +78,9 @@ function transcriptHtml(conv, ev, meta) {
   return `
     ${pre.length ? `
       <div class="cqa-botctx">
-        <div class="cqa-botctx__head">${icon('bot')}<span>До подключения оператора клиент написал</span></div>
+        <div class="cqa-botctx__head">Что клиент уже написал боту до оператора</div>
         ${clientLines.length ? `<ul class="cqa-botctx__quotes">${clientLines.map((m) => `<li>${esc(m.text)}</li>`).join('')}</ul>` : '<p class="cqa-faint" style="margin-top:6px">Клиент ничего не написал по существу</p>'}
-        <button type="button" class="cqa-btn cqa-btn--ghost cqa-btn--sm cqa-botctx__more" id="cqa-toggle-pre">${icon('down')}Показать переписку с ботом, ${pre.length} ${plural(pre.length, ['сообщение', 'сообщения', 'сообщений'])}</button>
+        <button type="button" class="cqa-btn cqa-btn--ghost cqa-btn--sm cqa-botctx__more" id="cqa-toggle-pre">${icon('down', 'cqa-ico--sm')}Вся переписка с ботом, ${pre.length} ${plural(pre.length, ['сообщение', 'сообщения', 'сообщений'])}</button>
       </div>
       <div id="cqa-pre" class="${preHasMarks ? '' : 'cqa-collapsed'}">${pre.map((m) => msgHtml(m, marks, isCall)).join('')}</div>` : ''}
     ${post.map((m) => msgHtml(m, marks, isCall)).join('')}`;
@@ -205,7 +206,7 @@ function mathLine(c, r, ev) {
 function critHtml(c, r, ev, appeals, role) {
   const v = answerView(c, r.answer);
   const isFlag = c.type === 'flag';
-  const open = (v.cls === 'no' || v.cls === 'mid' || (isFlag && r.answer === 'yes') || r.confidence === 'low' || r.original);
+  const open = false;
   const ap = appeals.find((a) => a.criterion_id === c.id && a.evaluation_id === ev.evaluation_id);
   const ev_ = (r.evidence || []).map((e) => `<button type="button" class="cqa-ev ${r.evidence_valid === false ? 'cqa-ev--invalid' : ''}" data-goto="${e.index}"><span class="cqa-ev__idx">#${e.index}</span><span class="cqa-ev__quote">${esc(e.quote || '')}</span></button>`).join('');
   const range = r.expected_range ? `<button type="button" class="cqa-banner__link" data-range="${r.expected_range.from}-${r.expected_range.to}">Действие ожидалось ${r.expected_range.from === r.expected_range.to ? `в реплике #${r.expected_range.from}` : `в репликах #${r.expected_range.from}–#${r.expected_range.to}`}</button>` : '';
@@ -231,8 +232,8 @@ function critHtml(c, r, ev, appeals, role) {
         ${r.evidence_valid === false ? `<div class="cqa-banner cqa-banner--warn">${icon('alert')}<span class="cqa-banner__text">Цитата не найдена в указанной реплике, вывод нужно проверить</span></div>` : ''}
         <div class="cqa-crit__foot">
           <span>${esc(mathLine(c, r, ev))}</span>
-          ${r.confidence === 'low' ? '<span class="cqa-badge cqa-badge--warn">Низкая уверенность</span>' : ''}
-          ${apHtml}
+          ${r.confidence === 'low' ? '<span class="cqa-chip cqa-chip--mid">Низкая уверенность</span>' : ''}
+          <span class="cqa-push">${apHtml}</span>
         </div>
       </div>
     </div>`;
@@ -252,7 +253,7 @@ function resultHtml(ev, checklist, meta, appeals, role) {
     const sec = ev.sections?.find((x) => x.section_id === s.id);
     const items = crits.map((c) => { const r = rows.find((x) => x.criterion_id === c.id); return r ? critHtml(meta.get(c.id), r, ev, appeals, role) : ''; }).join('');
     const scored = crits.some((c) => c.type !== 'flag');
-    return `<div><div class="cqa-section__head"><b>${esc(s.title)}</b>${scored && sec && sec.max_points ? `<span class="cqa-num">${fmt2(sec.points)} из ${fmt2(sec.max_points)}</span>` : scored ? '<span>N/A</span>' : ''}</div>${items}</div>`;
+    return `<div class="cqa-section"><div class="cqa-section__head"><b>${esc(s.title)}</b>${scored && sec && sec.max_points ? `<span class="cqa-num">${fmt2(sec.points)} из ${fmt2(sec.max_points)}</span>` : scored ? '<span>N/A</span>' : ''}</div><div class="cqa-crits">${items}</div></div>`;
   }).join('');
   return `
     <div class="cqa-total ${tone === 'low' ? 'cqa-total--low' : ''}">
@@ -264,14 +265,7 @@ function resultHtml(ev, checklist, meta, appeals, role) {
     ${lowConf.length ? `<div class="cqa-banner cqa-banner--warn">${icon('info')}<div><b>Нужна проверка человеком</b><div class="cqa-banner__text">Низкая уверенность модели: ${lowConf.map((c) => `${c.num} ${esc(c.title)}`).join(', ')}</div></div></div>` : ''}
     ${openAp.length ? `<div class="cqa-banner cqa-banner--info">${icon('scale')}<div><b>Открытых апелляций: ${openAp.length}</b><div class="cqa-banner__text">${openAp.map((a) => `${meta.get(a.criterion_id)?.num} ${esc(meta.get(a.criterion_id)?.title || '')}`).join(', ')}${role === 'reviewer' ? ' · <a href="#/appeals">Перейти к рассмотрению</a>' : ''}</div></div></div>` : ''}
     ${bySection}
-    <dl class="cqa-meta">
-      <div><dt>Модель</dt><dd>${esc(ev.model?.name || '—')}</dd></div>
-      <div><dt>Стоимость оценки</dt><dd>${fmtMoney(ev.usage?.cost_usd)}</dd></div>
-      <div><dt>Токены</dt><dd>${fmt0(ev.usage?.input_tokens)} вход, ${fmt0(ev.usage?.output_tokens)} выход</dd></div>
-      <div><dt>Время оценки</dt><dd>${ev.usage?.duration_ms ? `${fmt2(ev.usage.duration_ms / 1000)} с` : '—'}</dd></div>
-      <div><dt>Чек-лист</dt><dd>${esc(checklist.name)}, версия ${ev.checklist_version}</dd></div>
-      <div><dt>Оценено</dt><dd>${ev.created_at ? new Date(ev.created_at).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' }) : '—'}</dd></div>
-    </dl>`;
+    <p class="cqa-meta-line">Оценил ${esc(ev.model?.name || '—')} за ${ev.usage?.duration_ms ? `${fmt2(ev.usage.duration_ms / 1000)} с` : '—'}, стоимость ${fmtMoney(ev.usage?.cost_usd)} (${fmt0(ev.usage?.input_tokens)} токенов на входе, ${fmt0(ev.usage?.output_tokens)} на выходе). Чек-лист версии ${ev.checklist_version}${ev.created_at ? `, ${new Date(ev.created_at).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' })}` : ''}</p>`;
 }
 
 function evaluatingHtml(checklist) {
@@ -418,9 +412,7 @@ async function load(main, id) {
         <a class="cqa-btn cqa-btn--ghost cqa-btn--sm" href="#/list">${icon('back')}Диалоги</a>
         <div class="cqa-conv__title">
           <h1>${esc(conv.conversation_id)}</h1>
-          <span class="cqa-badge">${icon(isCall ? 'phone' : 'chat', 'cqa-ico--sm')}${esc(CHANNEL[conv.channel] || conv.channel)}</span>
-          <span class="cqa-badge">${esc(LANG[conv.language] || conv.language)}</span>
-          ${opName ? `<span class="cqa-muted">Оператор ${esc(opName)}</span>` : ''}
+          <span class="cqa-muted">${[CHANNEL[conv.channel] || conv.channel, LANG[conv.language] || conv.language, opName ? `оператор ${opName}` : null].filter(Boolean).map(esc).join(', ')}</span>
         </div>
         <div class="cqa-conv__nav">
           ${ev && role === 'reviewer' ? `<button type="button" class="cqa-btn cqa-btn--sm" id="cqa-reeval">${icon('refresh')}Переоценить</button>` : ''}
@@ -432,7 +424,7 @@ async function load(main, id) {
       <nav class="cqa-timeline" aria-label="События диалога">${timelineHtml(conv, ev, meta)}</nav>
       <div class="cqa-conv__grid">
         <section class="cqa-pane" aria-label="Транскрипт">
-          <div class="cqa-pane__head"><h2>Транскрипт</h2><span class="cqa-faint">${conv.transcript.length} ${plural(conv.transcript.length, ['реплика', 'реплики', 'реплик'])}</span><span class="cqa-faint" style="margin-left:auto">Номера слева — критерии, которые ссылаются на реплику</span></div>
+          <div class="cqa-pane__head"><h2>Транскрипт</h2><span class="cqa-faint">${conv.transcript.length} ${plural(conv.transcript.length, ['реплика', 'реплики', 'реплик'])}</span><span class="cqa-faint" style="margin-left:auto" title="Наведите на критерий справа, чтобы увидеть все его реплики">Красные номера слева — нарушенные критерии</span></div>
           ${isCall ? playerHtml(conv, ev, meta) : ''}
           <div class="cqa-pane__body cqa-scroll"><div class="cqa-transcript" id="cqa-transcript">${transcriptHtml(conv, ev, meta)}</div></div>
         </section>

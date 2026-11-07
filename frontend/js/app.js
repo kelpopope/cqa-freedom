@@ -24,14 +24,14 @@ function shell() {
   root.innerHTML = `
     <header class="cqa-header">
       <a class="cqa-brand" href="#/list" aria-label="Контроль качества диалогов">
-        <span class="cqa-brand__mark">${icon('shield')}</span>
-        <span class="cqa-brand__name">Freedom</span>
+        <svg class="cqa-brand__mark" viewBox="0 0 22 26" aria-hidden="true"><path d="M0 0h22v14c0 6-5 10-11 12C5 24 0 20 0 14z" fill="#4DB560"/><path d="M11 0h11v14c0 6-5 10-11 12z" fill="#1D5A3A"/></svg>
+        <span class="cqa-brand__name">FREEDOM</span>
         <span class="cqa-brand__sub">Контроль качества диалогов</span>
       </a>
       <nav class="cqa-nav" aria-label="Разделы">
-        <a href="#/list" data-nav="list">${icon('list')}Диалоги</a>
-        <a href="#/checklist" data-nav="checklist">${icon('checklist')}Чек-лист</a>
-        <a href="#/appeals" data-nav="appeals">${icon('scale')}Апелляции <span class="cqa-count-pill" id="cqa-appeals-count" hidden></span></a>
+        <a href="#/list" data-nav="list"><span>Диалоги</span></a>
+        <a href="#/checklist" data-nav="checklist"><span>Чек-лист</span></a>
+        <a href="#/appeals" data-nav="appeals"><span>Апелляции</span><span class="cqa-count-pill" id="cqa-appeals-count" hidden></span></a>
       </nav>
       <div class="cqa-header__right">
         <span class="cqa-mode ${api.mode === 'live' ? 'cqa-mode--live' : ''}" title="${api.mode === 'live' ? 'Данные с сервера' : 'Встроенные демо-данные, сервер не нужен'}">
@@ -54,10 +54,10 @@ function shell() {
     const theme = store.get().theme === 'dark' ? 'light' : 'dark';
     store.set({ theme });
     root.dataset.theme = theme;
-    document.body.style.background = theme === 'dark' ? '#0e1113' : '#f5f6f8';
+    document.body.style.background = theme === 'dark' ? '#121412' : '#f4f5f2';
     root.querySelector('#cqa-theme').innerHTML = icon(theme === 'dark' ? 'sun' : 'moon');
   });
-  document.body.style.background = s.theme === 'dark' ? '#0e1113' : '#f5f6f8';
+  document.body.style.background = s.theme === 'dark' ? '#121412' : '#f4f5f2';
 }
 
 export async function refreshAppealsCount() {

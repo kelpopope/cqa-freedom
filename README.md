@@ -27,7 +27,7 @@ uvicorn backend.app.main:app --reload
 
 ### Только интерфейс, без сервера (демо-данные)
 ```bash
-python -m http.server 5173
+python tools/dev_server.py
 ```
 Открыть http://localhost:5173/frontend/index.html — интерфейс работает на встроенных демо-диалогах.
 Переключатели режима: `?mock=1` — демо-данные, `?live=1` — сервер (`/api`).

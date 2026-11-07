@@ -3,7 +3,7 @@
 /* Кнопки */
 .cqa-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  height: 32px; padding: 0 12px; border-radius: var(--cqa-r);
+  height: 36px; padding: 0 14px; border-radius: var(--cqa-r);
   border: 1px solid var(--cqa-border-strong); background: var(--cqa-surface);
   font-size: var(--cqa-fs); font-weight: 500; cursor: pointer; white-space: nowrap;
   transition: background var(--cqa-fast), border-color var(--cqa-fast), transform var(--cqa-fast);
@@ -12,15 +12,15 @@
 .cqa-btn:active { transform: translateY(1px); }
 .cqa-btn[disabled] { opacity: 0.55; cursor: progress; }
 .cqa-btn--primary { background: var(--cqa-brand-strong); border-color: var(--cqa-brand-strong); color: var(--cqa-text-inverse); }
-.cqa-btn--primary:hover { background: var(--cqa-brand-text); border-color: var(--cqa-brand-text); }
-.cqa-root[data-theme="dark"] .cqa-btn--primary { color: #04130b; }
-.cqa-root[data-theme="dark"] .cqa-btn--primary:hover { background: var(--cqa-brand-bright); border-color: var(--cqa-brand-bright); }
+.cqa-btn--primary:hover { background: var(--cqa-brand-hover); border-color: var(--cqa-brand-hover); }
+.cqa-root[data-theme="dark"] .cqa-btn--primary { color: #0e1a11; }
 .cqa-btn--ghost { border-color: transparent; background: transparent; }
 .cqa-btn--ghost:hover { background: var(--cqa-hover); }
 .cqa-btn--danger { color: var(--cqa-bad); }
 .cqa-btn--sm { height: 26px; padding: 0 8px; font-size: var(--cqa-fs-sm); border-radius: var(--cqa-r-sm); }
-.cqa-btn--icon { width: 32px; padding: 0; }
-.cqa-btn--icon.cqa-btn--sm { width: 26px; }
+.cqa-btn--icon { width: 36px; padding: 0; }
+.cqa-btn--sm { height: 30px; padding: 0 10px; font-size: var(--cqa-fs-sm); border-radius: var(--cqa-r-sm); }
+.cqa-btn--icon.cqa-btn--sm { width: 30px; }
 .cqa-btn svg { width: 16px; height: 16px; flex: none; }
 .cqa-btn--sm svg { width: 14px; height: 14px; }
 
@@ -29,15 +29,18 @@
 .cqa-ico--sm { width: 14px; height: 14px; vertical-align: -2px; }
 
 /* Чипы-ответы: Да / Нет / N/A / шкала */
+/* Ответ по критерию: точка + текст, без заливки — спокойнее для глаз */
 .cqa-chip {
-  display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px;
-  border-radius: var(--cqa-r-pill); font-size: var(--cqa-fs-sm); font-weight: 500; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 6px; font-size: var(--cqa-fs-sm); font-weight: 500; white-space: nowrap; color: var(--cqa-text-2);
 }
-.cqa-chip--yes { background: var(--cqa-ok-soft); color: var(--cqa-ok); }
-.cqa-chip--no { background: var(--cqa-bad-soft); color: var(--cqa-bad); }
-.cqa-chip--na { background: var(--cqa-na-soft); color: var(--cqa-na); }
-.cqa-chip--mid { background: var(--cqa-warn-soft); color: var(--cqa-warn); }
-.cqa-chip--info { background: var(--cqa-info-soft); color: var(--cqa-info); }
+.cqa-chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+.cqa-chip--yes { color: var(--cqa-ok); }
+.cqa-chip--no { color: var(--cqa-bad); }
+.cqa-chip--na { color: var(--cqa-na); }
+.cqa-chip--na::before { background: transparent; border: 1.5px solid currentColor; width: 6px; height: 6px; }
+.cqa-chip--mid { color: var(--cqa-warn); }
+.cqa-chip--mid::before { background: var(--cqa-warn-dot); }
+.cqa-chip--info { color: var(--cqa-info); }
 
 /* Бейджи (мета-информация) */
 .cqa-badge {
@@ -54,7 +57,7 @@
 /* Сегментированный переключатель */
 .cqa-seg { display: inline-flex; padding: 2px; border-radius: var(--cqa-r); background: var(--cqa-surface-2); border: 1px solid var(--cqa-border); }
 .cqa-seg button {
-  height: 26px; padding: 0 10px; border: 0; border-radius: var(--cqa-r-sm); background: transparent;
+  height: 30px; padding: 0 10px; border: 0; border-radius: var(--cqa-r-sm); background: transparent;
   font-size: var(--cqa-fs-sm); font-weight: 500; color: var(--cqa-text-2); cursor: pointer;
   transition: background var(--cqa-fast), color var(--cqa-fast);
 }
@@ -63,7 +66,7 @@
 
 /* Поля ввода */
 .cqa-input, .cqa-select, .cqa-textarea {
-  height: 32px; padding: 0 10px; border-radius: var(--cqa-r); border: 1px solid var(--cqa-border-strong);
+  height: 36px; padding: 0 10px; border-radius: var(--cqa-r); border: 1px solid var(--cqa-border-strong);
   background: var(--cqa-surface); font-size: var(--cqa-fs); transition: border-color var(--cqa-fast), box-shadow var(--cqa-fast);
 }
 .cqa-textarea { height: auto; min-height: 80px; padding: 8px 10px; resize: vertical; line-height: 1.5; width: 100%; }
@@ -124,7 +127,8 @@
 .cqa-score { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; font-variant-numeric: tabular-nums; }
 .cqa-score__bar { width: 56px; height: 6px; border-radius: 6px; background: var(--cqa-surface-3); overflow: hidden; }
 .cqa-score__fill { display: block; height: 100%; border-radius: 6px; background: var(--cqa-ok); transition: width var(--cqa-base) var(--cqa-ease); }
-.cqa-score--mid .cqa-score__fill { background: #e8a33a; }
+.cqa-score__fill { background: var(--cqa-brand-bright); }
+.cqa-score--mid .cqa-score__fill { background: var(--cqa-warn-dot); }
 .cqa-score--low .cqa-score__fill { background: var(--cqa-bad); }
 .cqa-score--low { color: var(--cqa-bad); }
 
