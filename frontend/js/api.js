@@ -2,6 +2,11 @@
 // моки (интерфейс без сервера) или живой API (FastAPI, docs/API_CONTRACT.md).
 import { CONFIG } from './config.js';
 import { mockApi } from './mock/api.js';
+import { store } from './store.js';
+
+// Текущий набор (group_id) подставляется по умолчанию: список, «Обзор» и переоценка работают в рамках набора,
+// а не смешивают DEV с контрольным.
+const withGroup = (params) => ({ group_id: store.get().groupId, ...(params || {}) });
 
 async function http(method, path, body) {
   const res = await fetch(`${CONFIG.apiBase}${path}`, {
@@ -24,7 +29,7 @@ const liveApi = {
   mode: 'live',
   health: () => http('GET', '/health'),
   importDataset: (group_id) => http('POST', '/datasets/import', { group_id }),
-  listConversations: (params) => http('GET', `/conversations${qs(params)}`),
+  listConversations: (params) => http('GET', `/conversations${qs(withGroup(params))}`),
   getConversation: (id) => http('GET', `/conversations/${encodeURIComponent(id)}`),
   listChecklists: () => http('GET', '/checklists'),
   getChecklist: (id = 'default', version) => http('GET', `/checklists/${id}${qs({ version })}`),
@@ -38,8 +43,8 @@ const liveApi = {
   createAppeal: (body) => http('POST', '/appeals', body),
   decideAppeal: (id, body) => http('POST', `/appeals/${id}/decision`, body),
   overrideCriterion: (body) => http('POST', '/appeals/override', body),
-  compare: (params) => http('GET', `/evaluations/compare${qs({ checklist_id: 'default', ...params })}`),
-  stats: (params) => http('GET', `/stats${qs(params)}`),
+  compare: (params) => http('GET', `/evaluations/compare${qs({ checklist_id: 'default', ...withGroup(params) })}`),
+  stats: (params) => http('GET', `/stats${qs(withGroup(params))}`),
 };
 
 export const api = CONFIG.useMocks ? mockApi : liveApi;

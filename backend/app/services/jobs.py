@@ -71,7 +71,8 @@ def start(checklist_id: str = "default", version: int | None = None, group_id: s
             "checklist_version": checklist["version"], "conversation_ids": ids, "errors": {},
             "evaluation_ids": {}, "cost_usd": 0.0}
     with db.connect() as conn:
-        conn.execute("INSERT INTO jobs (job_id, status, total, data) VALUES (?, 'queued', ?, ?)",
+        # сразу «running»: интерфейс опрашивает задачу, пока статус running (queued он принял бы за завершение)
+        conn.execute("INSERT INTO jobs (job_id, status, total, data) VALUES (?, 'running', ?, ?)",
                      (job_id, len(ids), db.dumps(meta)))
 
     def run():

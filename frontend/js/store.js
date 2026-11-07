@@ -16,7 +16,7 @@ const state = {
   role: ROLES[saved.role] ? saved.role : 'qa',
   theme: saved.theme === 'dark' ? 'dark' : 'light',
   queue: { view: 'all', q: '', lang: '', channel: '' },
-  groupId: 'DEV',
+  groupId: typeof saved.groupId === 'string' && saved.groupId ? saved.groupId : 'DEV',
 };
 
 const subs = new Set();
@@ -25,7 +25,7 @@ export const store = {
   get: () => state,
   set(patch) {
     Object.assign(state, patch);
-    try { localStorage.setItem(KEY, JSON.stringify({ role: state.role, theme: state.theme })); } catch { /* приватный режим */ }
+    try { localStorage.setItem(KEY, JSON.stringify({ role: state.role, theme: state.theme, groupId: state.groupId })); } catch { /* приватный режим */ }
     subs.forEach((fn) => fn(state, patch));
   },
   subscribe(fn) { subs.add(fn); return () => subs.delete(fn); },
