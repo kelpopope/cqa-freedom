@@ -21,7 +21,7 @@
 
   --cqa-text: #1b1a17;
   --cqa-text-2: #4f564d;
-  --cqa-text-3: #7d847b;
+  --cqa-text-3: #687066; /* контраст ≥ 4.5:1 на белом и на surface-2 (было 3.9:1) */
   --cqa-on-accent: #ffffff;
 
   --cqa-bad: #b23a2e;

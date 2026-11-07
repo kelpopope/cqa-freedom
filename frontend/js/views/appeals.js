@@ -36,7 +36,7 @@ function listHtml() {
       ${l.length ? l.map((a, i) => `<button type="button" class="cqa-qi" data-id="${a.appeal_id}" style="--i:${i}" aria-current="${a.appeal_id === S.id}">
         <div class="cqa-qi__l1"><span class="cqa-qi__id">${esc(a.conversation_id)}</span>${a.status === 'open' ? '<span class="cqa-badge cqa-badge--warn">На рассмотрении</span>' : `<span class="cqa-badge cqa-badge--${a.decision.action === 'change' ? 'ok' : 'outline'}">${a.decision.action === 'change' ? 'Изменено' : 'Оставлено'}</span>`}</div>
         <div class="cqa-qi__l2">${esc(a.author_name || 'Оператор')}: «${esc(a.comment)}»</div>
-        <div class="cqa-qi__l3"><span>${esc(a.criterion_result ? '' : '')}${esc(a.criterion_id.replace('c', 'Критерий '))}</span><span>${esc(relTime(a.created_at))}</span></div>
+        <div class="cqa-qi__l3"><span>${esc(a.criterion_title || a.criterion_id.replace('c', 'Критерий '))}</span><span>${esc(relTime(a.created_at))}</span></div>
       </button>`).join('') : `<div class="cqa-empty" style="padding:32px 16px"><b>${S.tab === 'open' ? 'Открытых апелляций нет' : 'Решённых пока нет'}</b></div>`}
     </div></div>`;
 }
@@ -80,7 +80,7 @@ async function detailHtml(a) {
         <div class="cqa-ap__cell"><small>Итог до решения</small><b>${fmt2(d ? d.total_before : a.current_total)}</b></div>
         <div class="cqa-ap__cell ${d ? 'cqa-ap__cell--new' : ''}"><small>Итог после решения</small><b>${d ? fmt2(d.new_total) : '—'}</b></div>
       </div>
-      <div><div class="cqa-cr__label" style="margin-bottom:6px">Комментарий оператора</div><div class="cqa-quote">«${esc(a.comment)}»</div></div>
+      <div><div class="cqa-cr__label" style="margin-bottom:6px">Комментарий оператора</div><div class="cqa-quote">«${esc(a.comment)}»${a.proposed_answer != null ? `<small style="margin:6px 0 0">Предлагает ответ: <b>${esc(answerView(c, a.proposed_answer).label)}</b></small>` : ''}</div></div>
       <div><div class="cqa-cr__label" style="margin-bottom:6px">Обоснование AI</div><p style="line-height:1.6">${esc(r.explanation || r.na_reason || '')}</p></div>
       <div><div class="cqa-cr__label" style="margin-bottom:6px">Фрагмент диалога</div><div class="cqa-ctx">${ctxHtml(a)}</div></div>
       ${canDecide ? `
@@ -90,7 +90,7 @@ async function detailHtml(a) {
           <label><input type="radio" name="act" value="confirm" checked><span><b>Оставить оценку</b><small>Оценка AI верна</small></span></label>
           <label><input type="radio" name="act" value="change"><span><b>Изменить ответ</b><small>Итог пересчитается</small></span></label>
         </div>
-        <div class="cqa-field" id="cqa-new" hidden><label for="cqa-new-ans">Новый ответ</label><select class="cqa-select" id="cqa-new-ans">${answerOptions(c, a.original.answer)}</select></div>
+        <div class="cqa-field" id="cqa-new" hidden><label for="cqa-new-ans">Новый ответ</label><select class="cqa-select" id="cqa-new-ans">${answerOptions(c, a.original.answer).replace(a.proposed_answer != null ? `value="${a.proposed_answer}"` : '\u0000', `value="${a.proposed_answer}" selected`)}</select></div>
         <div class="cqa-field"><label for="cqa-reason">Причина решения</label><textarea class="cqa-textarea" id="cqa-reason" placeholder="Её увидит оператор, она сохранится в истории"></textarea><span class="cqa-field__err" id="cqa-reason-err" hidden>Укажите причину решения</span></div>
         <div style="display:flex;justify-content:flex-end"><button type="submit" class="cqa-btn cqa-btn--primary">Сохранить решение</button></div>
       </form>` : d ? `<div><div class="cqa-cr__label" style="margin-bottom:6px">Причина решения</div><div class="cqa-quote">«${esc(d.reason)}»</div></div>` : '<div class="cqa-alert cqa-alert--warn">' + icon('info', 'cqa-ico--sm') + '<div><b>Ожидает решения</b><span class="cqa-alert__text">Апелляцию рассматривает специалист контроля качества</span></div></div>'}

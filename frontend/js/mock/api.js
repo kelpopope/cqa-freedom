@@ -167,6 +167,7 @@ function appealView(a) {
     conversation: { conversation_id: conv.conversation_id, operator_name: conv.operator_name, channel: conv.channel, language: conv.language },
     context: clone(conv.transcript.slice(from, to + 1)),
     criterion_result: clone(row),
+    criterion_title: ev ? checklistOf(ev).criteria.find((c) => c.id === a.criterion_id)?.title : null,
     checklist_version: ev?.checklist_version,
     current_total: withFinal(a.conversation_id)?.final.total,
   };
@@ -260,13 +261,13 @@ export const mockApi = {
     return db.appeals.filter((a) => !status || a.status === status).map(appealView);
   },
 
-  async createAppeal({ evaluation_id, criterion_id, comment, author_role = 'operator', author_name }) {
+  async createAppeal({ evaluation_id, criterion_id, comment, proposed_answer = null, author_role = 'operator', author_name }) {
     await init(); await wait(200);
     const ev = evById(evaluation_id);
     const row = ev.criteria.find((x) => x.criterion_id === criterion_id);
     const conv = db.conversations.get(ev.conversation_id);
     const ap = {
-      appeal_id: uid('ap'), evaluation_id, conversation_id: ev.conversation_id, criterion_id, comment,
+      appeal_id: uid('ap'), evaluation_id, conversation_id: ev.conversation_id, criterion_id, comment, proposed_answer,
       author_role, author_name: author_name || (author_role === 'operator' ? conv.operator_name : 'Елена Морозова'),
       created_at: nowIso(), status: 'open',
       original: { answer: row.answer, points: row.points, raw_points: row.raw_points, total: withFinal(ev.conversation_id).final.total }, decision: null,

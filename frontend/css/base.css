@@ -30,6 +30,23 @@
 .cqa-root .cqa-num { font-variant-numeric: tabular-nums; }
 .cqa-root .cqa-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .cqa-root [hidden] { display: none !important; }
+.cqa-root :where(button, a, [role="button"], select, summary, label[for]) { cursor: pointer; }
+.cqa-root :where(button, a) { touch-action: manipulation; }
+
+/* Ссылка «к содержимому» для клавиатуры */
+.cqa-skip { position: absolute; left: 12px; top: -48px; z-index: 100; padding: 10px 14px; border-radius: var(--cqa-r); background: var(--cqa-green-dark); color: var(--cqa-on-accent) !important; font-weight: 600; transition: top var(--cqa-fast); }
+.cqa-skip:focus { top: 12px; }
+.cqa-main:focus { outline: none; box-shadow: none; }
+
+@media (max-width: 760px) { .cqa-root .cqa-input, .cqa-root .cqa-select, .cqa-root .cqa-textarea { font-size: 16px; } }
+
+/* Сенсорные экраны: цели нажатия не меньше 44 px, поля ввода 16 px (без автозума iOS) */
+@media (pointer: coarse) {
+  .cqa-root .cqa-btn, .cqa-root .cqa-tabs button, .cqa-root .cqa-seg button, .cqa-root .cqa-input, .cqa-root .cqa-select { min-height: 44px; }
+  .cqa-root .cqa-btn--icon { min-width: 44px; }
+  .cqa-root .cqa-input, .cqa-root .cqa-select, .cqa-root .cqa-textarea { font-size: 16px; }
+  .cqa-root .cqa-cr__row { min-height: 52px; }
+}
 
 .cqa-root .cqa-scroll { overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--cqa-line-2) transparent; }
 .cqa-root .cqa-scroll::-webkit-scrollbar { width: 10px; height: 10px; }

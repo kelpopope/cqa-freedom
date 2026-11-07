@@ -41,12 +41,13 @@ function shell() {
   root.dataset.theme = s.theme;
   document.body.style.background = s.theme === 'dark' ? '#121512' : '#f5f6f3';
   root.innerHTML = `
+    <a class="cqa-skip" href="#cqa-main" data-skip>Перейти к содержимому</a>
     <div class="cqa-shell">
       <aside class="cqa-side" id="cqa-side" aria-label="Главное меню">
         <a class="cqa-logo" href="${defaultRoute()}" aria-label="Freedom Broker, контроль качества">${LOGO}</a>
         <div class="cqa-logo__sub">Контроль качества</div>
         <nav class="cqa-menu" id="cqa-menu">
-          ${NAV.filter((n) => n.roles.includes(s.role)).map((n) => `<a href="${n.href}" data-nav="${n.key}" title="${n.label}">${icon(n.icon)}<span>${n.label}</span>${n.pill ? '<span class="cqa-pill" id="cqa-pill-appeals" hidden></span>' : ''}</a>`).join('')}
+          ${NAV.filter((n) => n.roles.includes(s.role)).map((n) => `<a href="${n.href}" data-nav="${n.key}" title="${n.label}" aria-label="${n.label}">${icon(n.icon)}<span>${n.label}</span>${n.pill ? '<span class="cqa-pill" id="cqa-pill-appeals" hidden></span>' : ''}</a>`).join('')}
         </nav>
         <div class="cqa-dataset" id="cqa-dataset">
           <div class="cqa-dataset__label">Набор данных</div>
@@ -97,6 +98,8 @@ function shell() {
   root.querySelector('#cqa-cmd-btn').addEventListener('click', openPalette);
   root.querySelectorAll('[data-cmd]').forEach((b) => b.addEventListener('click', openPalette));
   root.querySelector('#cqa-help').addEventListener('click', openShortcuts);
+  // Ссылка «к содержимому» не должна менять hash-маршрут
+  root.querySelector('[data-skip]').addEventListener('click', (e) => { e.preventDefault(); root.querySelector('#cqa-main').focus(); });
   root.querySelector('#cqa-burger').addEventListener('click', () => { root.dataset.navOpen = 'true'; });
   root.querySelector('[data-close-nav]').addEventListener('click', () => { root.dataset.navOpen = 'false'; });
   root.querySelector('#cqa-menu').addEventListener('click', () => { root.dataset.navOpen = 'false'; });
@@ -211,6 +214,8 @@ async function route(force = false) {
   main.classList.remove('cqa-enter'); void main.offsetWidth; main.classList.add('cqa-enter');
   try {
     await r.view.render(main, params);
+    // После смены экрана фокус — в содержимое (для клавиатуры и экранных дикторов)
+    main.focus({ preventScroll: true });
   } catch (err) {
     console.error(err);
     main.innerHTML = `<div class="cqa-empty"><div class="cqa-empty__icon">${icon('alert')}</div><h2>Не удалось загрузить</h2><p>${esc(err.message)}</p><a class="cqa-btn" href="${defaultRoute()}">На главную</a></div>`;
