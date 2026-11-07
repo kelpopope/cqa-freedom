@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Макет v2: проверка диалога</title>
+<style>
+:root{
+  --side:#143B28; --side-2:#1B4A33; --side-text:#D5E6DA; --side-muted:#8FB09B;
+  --green:#4DB560; --green-dark:#1D5A3A; --lime:#DDF2CF; --ink:#1B1A17;
+  --bg:#F4F5F1; --surface:#FFFFFF; --surface-2:#F6F7F4; --surface-3:#ECEFE8;
+  --line:#E4E7E0; --line-2:#D2D7CD;
+  --text:#1B1A17; --text-2:#4F564D; --text-3:#7D847B;
+  --op:#EAF4E9;
+  --bad:#B23A2E; --bad-bg:#FCEFEC; --bad-line:#F1CFC9;
+  --font:"Segoe UI",Inter,system-ui,-apple-system,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font:14px/1.5 var(--font);color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1;min-width:1280px}
+button{font:inherit;color:inherit;cursor:pointer}
+svg.i{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+svg.s{width:14px;height:14px}
+
+.layout{display:grid;grid-template-columns:232px minmax(0,1fr);height:100vh}
+
+/* боковая панель */
+.side{background:var(--side);color:var(--side-text);display:flex;flex-direction:column;padding:20px 12px}
+.logo{display:flex;align-items:center;gap:10px;padding:0 10px}
+.logo b{font-size:19px;font-weight:700;letter-spacing:.03em;color:#fff}
+.logo-sub{padding:2px 10px 0 42px;color:var(--side-muted);font-size:13px}
+.menu{margin-top:28px;display:flex;flex-direction:column;gap:2px}
+.menu a{display:flex;align-items:center;gap:12px;height:42px;padding:0 12px;border-radius:10px;color:var(--side-text);text-decoration:none;font-weight:500}
+.menu a:hover{background:var(--side-2)}
+.menu a.on{background:var(--lime);color:var(--side)}
+.menu .n{margin-left:auto;min-width:22px;height:22px;border-radius:11px;background:#2C5E43;color:#fff;font-size:12px;display:grid;place-items:center}
+.ds{margin:24px 10px 0;padding-top:16px;border-top:1px solid #285640}
+.ds-l{font-size:12px;color:var(--side-muted)}
+.ds-v{margin-top:6px;display:flex;justify-content:space-between;align-items:center}
+.ds-v b{color:#fff;font-weight:500}
+.ds-v span{font-size:12px;color:var(--side-muted)}
+.ds-p{margin-top:8px;height:4px;border-radius:4px;background:#285640;overflow:hidden}
+.ds-p i{display:block;height:100%;width:100%;background:var(--green)}
+.user{margin-top:auto;padding:12px 10px 0;border-top:1px solid #285640}
+.role{display:flex;padding:3px;border-radius:9px;background:#0E2E1F;margin-bottom:12px}
+.role button{flex:1;border:0;background:none;color:var(--side-muted);height:28px;border-radius:7px;font-size:12px}
+.role button.on{background:var(--side-2);color:#fff}
+.who{display:flex;align-items:center;gap:10px}
+.av{width:34px;height:34px;border-radius:50%;background:var(--lime);color:var(--side);display:grid;place-items:center;font-weight:600;font-size:13px}
+.who b{display:block;color:#fff;font-weight:500}
+.who span{font-size:12px;color:var(--side-muted)}
+
+/* основная область */
+.main{display:flex;flex-direction:column;min-width:0}
+.top{height:60px;display:flex;align-items:center;gap:16px;padding:0 28px;border-bottom:1px solid var(--line);background:var(--surface)}
+.crumbs{color:var(--text-3)}
+.crumbs b{color:var(--text);font-weight:500}
+.search{margin-left:auto;position:relative;width:340px}
+.search input{width:100%;height:38px;border:1px solid var(--line-2);border-radius:10px;padding:0 70px 0 38px;font:inherit;background:var(--surface-2)}
+.search svg{position:absolute;left:12px;top:10px;color:var(--text-3)}
+.search kbd{position:absolute;right:10px;top:9px;font:12px var(--font);color:var(--text-3);border:1px solid var(--line-2);border-radius:5px;padding:0 6px;background:var(--surface)}
+.content{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:20px;padding:20px 28px 24px}
+
+.head{grid-column:1/3;display:flex;align-items:flex-end;gap:20px}
+.head h1{margin:0;font-size:26px;font-weight:600;letter-spacing:-.01em}
+.head .sub{margin-top:4px;color:var(--text-2)}
+.chips{display:flex;gap:8px;margin-top:12px}
+.chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border:1px solid var(--line);background:var(--surface);border-radius:8px;color:var(--text-2);font-size:13px}
+.chip.bad{border-color:var(--bad-line);background:var(--bad-bg);color:var(--bad);font-weight:500}
+.pager{margin-left:auto;display:flex;align-items:center;gap:10px;color:var(--text-2)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 14px;border-radius:10px;border:1px solid var(--line-2);background:var(--surface);font-weight:500}
+.btn.sq{width:38px;padding:0}
+.btn:hover{background:var(--surface-2)}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.p-head{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line)}
+.p-head h2{margin:0;font-size:17px;font-weight:600}
+.p-head span{color:var(--text-3)}
+.p-head .lnk{margin-left:auto;display:flex;align-items:center;gap:6px;color:var(--green-dark);font-weight:500;border:0;background:none;padding:0}
+.scroll{overflow:auto;min-height:0;flex:1}
+
+/* карта диалога */
+.map{padding:16px 20px 14px;border-bottom:1px solid var(--line)}
+.track{display:flex;height:10px;gap:2px;border-radius:5px;overflow:hidden}
+.track i{display:block;height:100%}
+.t-bot{background:#D9DDD5}.t-cl{background:#B9C3B5}.t-op{background:var(--green)}.t-sys{background:#ECEFE8}.t-bad{background:var(--bad)}
+.marks{position:relative;height:40px;margin-top:6px;font-size:12px}
+.mk{position:absolute;top:0;transform:translateX(-50%);text-align:center;white-space:nowrap;color:var(--text-2)}
+.mk:before{content:"";display:block;width:1px;height:8px;background:var(--line-2);margin:0 auto 2px}
+.mk.bad{color:var(--bad);font-weight:500}
+.mk.bad:before{background:var(--bad)}
+.mk.miss{color:var(--bad)}
+.mk small{display:block;color:var(--text-3);font-weight:400}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--text-3)}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px;display:block}
+
+/* переписка */
+.thread{padding:18px 24px 28px;display:flex;flex-direction:column;gap:14px}
+.ctx{border:1px dashed var(--line-2);border-radius:12px;padding:12px 14px;color:var(--text-2)}
+.ctx b{font-weight:500;color:var(--text)}
+.sys{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--text-3)}
+.sys:before,.sys:after{content:"";flex:1;height:1px;background:var(--line)}
+.row{display:flex;gap:10px;align-items:flex-start}
+.row.op{flex-direction:row-reverse}
+.ava{width:32px;height:32px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:12px;font-weight:600}
+.cl .ava{background:var(--surface-3);color:var(--text-2)}
+.op .ava{background:var(--green-dark);color:#fff}
+.col{max-width:72%;display:flex;flex-direction:column;gap:6px}
+.op .col{align-items:flex-end}
+.who2{font-size:12px;color:var(--text-3);display:flex;gap:8px}
+.who2 b{font-weight:500;color:var(--text-2)}
+.bub{padding:10px 14px;border-radius:14px;font-size:15px;line-height:1.55}
+.cl .bub{background:var(--surface);border:1px solid var(--line);border-top-left-radius:4px}
+.op .bub{background:var(--op);border-top-right-radius:4px}
+.bub.hit{background:var(--bad-bg);box-shadow:0 0 0 1.5px var(--bad)}
+.note{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--bad);background:var(--bad-bg);border-radius:8px;padding:6px 10px}
+.ref{font-size:12px;color:var(--bad);display:flex;gap:6px}
+.ref span{border:1px solid var(--bad-line);border-radius:6px;padding:1px 6px;background:var(--surface)}
+
+/* оценка */
+.right{display:flex;flex-direction:column;gap:16px;min-height:0}
+.score{background:var(--side);color:#fff;border-radius:14px;padding:18px 20px}
+.s-top{display:flex;justify-content:space-between;color:var(--side-text);font-size:13px}
+.s-top a{color:var(--side-text);display:flex;gap:6px;align-items:center;text-decoration:underline;text-underline-offset:3px}
+.s-num{display:flex;align-items:baseline;gap:10px;margin-top:6px}
+.s-num b{font-size:56px;line-height:1;font-weight:600;letter-spacing:-.02em}
+.s-num span{color:var(--side-muted);font-size:18px}
+.s-v{margin-left:auto;align-self:center;background:#F6D3CC;color:#7E2219;font-weight:600;font-size:13px;padding:5px 10px;border-radius:8px}
+.s-bar{display:flex;gap:3px;height:8px;margin-top:16px}
+.s-bar i{display:block;height:100%;border-radius:4px;background:#2E5A43;overflow:hidden}
+.s-bar i b{display:block;height:100%;background:var(--green)}
+.s-l{display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--side-muted)}
+.s-sum{margin:12px 0 0;color:#E9F1EB;line-height:1.6}
+
+.crit .p-head{padding:14px 20px}
+.sec{padding:10px 20px 4px}
+.sec-h{display:flex;justify-content:space-between;font-size:12px;color:var(--text-3);padding:6px 0}
+.sec-h b{font-weight:500;color:var(--text-2)}
+.cr{display:grid;grid-template-columns:28px minmax(0,1fr) auto 20px;gap:10px;align-items:center;min-height:42px;border-top:1px solid var(--line)}
+.cr .no{color:var(--text-3);font-size:13px}
+.cr .t{font-weight:500}
+.cr .p{text-align:right;font-weight:500;white-space:nowrap}
+.cr .p small{color:var(--text-3);font-weight:400}
+.ok{color:var(--green-dark)}
+.cr.x .t,.cr.x .p{color:var(--bad)}
+.st{width:18px;height:18px;border-radius:50%;display:grid;place-items:center}
+.st.y{background:#E2F1DF;color:var(--green-dark)}
+.st.n{background:var(--bad);color:#fff}
+.st.part{border:1.5px solid var(--text-3)}
+.open{background:var(--bad-bg);border:1px solid var(--bad-line);border-radius:12px;margin:2px -10px 6px;padding:0 10px 12px}
+.open .cr{border-top:0}
+.det{display:flex;flex-direction:column;gap:10px;padding-left:38px}
+.det p{margin:0;line-height:1.6}
+.det .rowx{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--text-2)}
+.ev{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 10px;border-radius:8px;background:var(--surface);border:1px solid var(--bad-line);color:var(--bad);font-weight:500;font-size:13px}
+.conf{background:#E2F1DF;color:var(--green-dark);border-radius:6px;padding:1px 8px;font-weight:500}
+.det a{color:var(--text-2);text-decoration:underline;text-underline-offset:3px;font-size:13px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 20px 18px;border-top:1px solid var(--line)}
+.pri{height:44px;border-radius:10px;border:0;background:var(--green-dark);color:#fff;font-weight:600}
+.sec2{height:44px;border-radius:10px;border:1px solid var(--line-2);background:var(--surface);font-weight:600}
+.foot{font-size:12px;color:var(--text-3);padding:0 20px 14px;display:flex;justify-content:space-between}
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <aside class="side">
+    <div class="logo">
+      <svg width="24" height="28" viewBox="0 0 22 26" aria-hidden="true"><path d="M0 0h22v14c0 6-5 10-11 12C5 24 0 20 0 14z" fill="#4DB560"/><path d="M11 0h11v14c0 6-5 10-11 12z" fill="#A8D99A"/></svg>
+      <b>FREEDOM</b>
+    </div>
+    <div class="logo-sub">Контроль качества</div>
+    <nav class="menu">
+      <a class="on" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Диалоги</a>
+      <a href="#"><svg class="i" viewBox="0 0 24 24"><path d="M12 3v18M5 21h14M6 7h12M6 7l-3 7a3 3 0 0 0 6 0zM18 7l-3 7a3 3 0 0 0 6 0z"/></svg>Апелляции<span class="n">2</span></a>
+      <a href="#"><svg class="i" viewBox="0 0 24 24"><path d="m3 7 2 2 4-4M3 17l2 2 4-4M13 6h8M13 12h8M13 18h8"/></svg>Чек-лист</a>
+    </nav>
+    <div class="ds">
+      <div class="ds-l">Набор данных</div>
+      <div class="ds-v"><b>DEV</b><span>65 из 65 оценено</span></div>
+      <div class="ds-p"><i></i></div>
+    </div>
+    <div class="user">
+      <div class="role"><button>Оператор</button><button class="on">Проверяющий</button></div>
+      <div class="who"><div class="av">АС</div><div><b>Анна Смирнова</b><span>Супервайзер</span></div></div>
+    </div>
+  </aside>
+
+  <section class="main">
+    <header class="top">
+      <div class="crumbs">Диалоги &nbsp;/&nbsp; <b>p1-ru-009</b></div>
+      <label class="search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input placeholder="Поиск по ID, оператору или фразе"><kbd>Ctrl K</kbd></label>
+    </header>
+
+    <div class="content">
+      <div class="head">
+        <div>
+          <h1>Данные счёта раскрыты до проверки личности</h1>
+          <div class="sub">Диалог p1-ru-009, оператор Руслан, сегодня в 14:32</div>
+          <div class="chips">
+            <span class="chip"><svg class="i s" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Чат</span>
+            <span class="chip">Русский</span>
+            <span class="chip"><svg class="i s" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>3 мин 46 с</span>
+            <span class="chip bad"><svg class="i s" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>Грубое нарушение</span>
+          </div>
+        </div>
+        <div class="pager">
+          <button class="btn sq" aria-label="Предыдущий"><svg class="i" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+          <span>2 из 8 с нарушениями</span>
+          <button class="btn sq" aria-label="Следующий"><svg class="i" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+        </div>
+      </div>
+
+      <!-- переписка -->
+      <div class="panel">
+        <div class="p-head"><h2>Диалог</h2><span>11 сообщений</span><button class="lnk"><svg class="i s" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 8V4M8 14h.01M16 14h.01"/></svg>Переписка с ботом, 6</button></div>
+        <div class="map">
+          <div class="track">
+            <i class="t-bot" style="flex:44"></i><i class="t-sys" style="flex:4"></i><i class="t-op" style="flex:33"></i><i class="t-cl" style="flex:27"></i><i class="t-bad" style="flex:15"></i><i class="t-cl" style="flex:40"></i><i class="t-op" style="flex:40"></i>
+          </div>
+          <div class="marks">
+            <span class="mk" style="left:2%">Бот<small>00:00</small></span>
+            <span class="mk" style="left:24%">Оператор<small>01:51</small></span>
+            <span class="mk miss" style="left:46%">Личность не подтверждена</span>
+            <span class="mk bad" style="left:67%">Данные раскрыты<small>02:51</small></span>
+            <span class="mk" style="left:96%">Конец<small>03:46</small></span>
+          </div>
+          <div class="legend"><span><i class="t-bot"></i>Бот</span><span><i class="t-cl"></i>Клиент</span><span><i class="t-op"></i>Оператор</span><span><i class="t-bad"></i>Нарушение</span></div>
+        </div>
+        <div class="scroll">
+          <div class="thread">
+            <div class="ctx"><b>Клиент написал боту:</b> «Вчера вывод работал, сегодня нет. Посмотрите, что с моим счётом?» Бот передал диалог оператору.</div>
+            <div class="sys">00:44, чат передан оператору</div>
+            <div class="row op"><div class="ava">Р</div><div class="col"><div class="who2"><b>Руслан, оператор</b><span>01:51</span></div><div class="bub">Здравствуйте, я Руслан. Какое сообщение вы видите в приложении?</div></div></div>
+            <div class="row cl"><div class="ava"><svg class="i s" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></div><div class="col"><div class="who2"><b>Клиент</b><span>02:24</span></div><div class="bub">Никакого, кнопка не нажимается. Можете проверить сам счёт?</div></div></div>
+            <div class="row op"><div class="ava">Р</div><div class="col">
+              <div class="who2"><b>Руслан, оператор</b><span>02:51</span></div>
+              <div class="bub hit">Я посмотрел: на вашем счёте стоит ограничение на вывод.</div>
+              <div class="note"><svg class="i s" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>До этой реплики личность клиента не подтверждена</div>
+              <div class="ref"><span>03 Идентификация</span><span>08 Грубое нарушение</span></div>
+            </div></div>
+            <div class="row cl"><div class="ava"><svg class="i s" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></div><div class="col"><div class="who2"><b>Клиент</b><span>03:06</span></div><div class="bub">Подождите, я ещё не подтверждал, что это мой счёт.</div></div></div>
+            <div class="row op"><div class="ava">Р</div><div class="col"><div class="who2"><b>Руслан, оператор</b><span>03:46</span></div><div class="bub">Подтверждение не нужно. Передам вопрос на проверку. До свидания.</div><div class="ref"><span>05 Эмпатия</span></div></div></div>
+            <div class="sys">03:46, диалог завершён</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- оценка -->
+      <div class="right">
+        <div class="score">
+          <div class="s-top"><span>Итоговая оценка</span><a href="#"><svg class="i s" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>Как считается</a></div>
+          <div class="s-num"><b>45,50</b><span>/ 100</span><span class="s-v">Критично</span></div>
+          <div class="s-bar">
+            <i style="flex:10"><b style="width:100%"></b></i><i style="flex:15"><b style="width:100%"></b></i><i style="flex:20"><b style="width:0"></b></i><i style="flex:20"><b style="width:25%"></b></i><i style="flex:15"><b style="width:0"></b></i><i style="flex:15"><b style="width:70%"></b></i><i style="flex:5"><b style="width:100%"></b></i>
+          </div>
+          <div class="s-l"><span>7 критериев с весом, все применимы</span><span>Грубое нарушение отмечено отдельно</span></div>
+          <p class="s-sum">Оператор сообщил об ограничении на счёте, не подтвердив личность клиента, и проигнорировал его возражение. Причина ограничения так и не названа.</p>
+        </div>
+
+        <div class="panel crit">
+          <div class="p-head"><h2>Проверка по критериям</h2><span style="margin-left:auto">чек-лист, версия 1</span></div>
+          <div class="scroll">
+            <div class="sec">
+              <div class="sec-h"><b>Начало и понимание запроса</b><span>25 из 25</span></div>
+              <div class="cr"><span class="no">01</span><span class="t">Установление контакта</span><span class="p ok">10 <small>из 10</small></span><span class="st y"><svg class="i s" viewBox="0 0 24 24" style="stroke-width:2.4"><path d="M20 6 9 17l-5-5"/></svg></span></div>
+              <div class="cr"><span class="no">02</span><span class="t">Выявление потребности</span><span class="p ok">15 <small>из 15</small></span><span class="st y"><svg class="i s" viewBox="0 0 24 24" style="stroke-width:2.4"><path d="M20 6 9 17l-5-5"/></svg></span></div>
+            </div>
+            <div class="sec">
+              <div class="sec-h"><b>Безопасность и решение</b><span>5 из 40</span></div>
+              <div class="open">
+                <div class="cr x"><span class="no">03</span><span class="t">Идентификация</span><span class="p">0 <small>из 20</small></span><span class="st n"><svg class="i s" viewBox="0 0 24 24" style="stroke-width:2.6"><path d="M18 6 6 18M6 6l12 12"/></svg></span></div>
+                <div class="det">
+                  <p>Оператор сообщил об ограничении на счёте до подтверждения личности. Клиент сам указал, что не проходил проверку.</p>
+                  <div class="rowx"><span class="ev">Реплика 02:51 <svg class="i s" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/></svg></span><span>Уверенность AI <span class="conf">высокая</span></span></div>
+                  <div class="rowx"><span>Ожидалось: проверка личности перед ответом в 02:51</span><a href="#">Оспорить оценку</a></div>
+                </div>
+              </div>
+              <div class="cr"><span class="no">04</span><span class="t">Корректная и полная консультация</span><span class="p">5 <small>из 20</small></span><span class="st part"></span></div>
+            </div>
+            <div class="sec">
+              <div class="sec-h"><b>Ведение и завершение</b><span>15,50 из 35</span></div>
+              <div class="cr x"><span class="no">05</span><span class="t">Эмпатия и клиентоориентированность</span><span class="p">0 <small>из 15</small></span><span class="st n"><svg class="i s" viewBox="0 0 24 24" style="stroke-width:2.6"><path d="M18 6 6 18M6 6l12 12"/></svg></span></div>
+              <div class="cr"><span class="no">06</span><span class="t">Управление диалогом</span><span class="p">10,50 <small>из 15</small></span><span class="st part"></span></div>
+              <div class="cr"><span class="no">07</span><span class="t">Завершение</span><span class="p ok">5 <small>из 5</small></span><span class="st y"><svg class="i s" viewBox="0 0 24 24" style="stroke-width:2.4"><path d="M20 6 9 17l-5-5"/></svg></span></div>
+            </div>
+            <div class="sec">
+              <div class="sec-h"><b>Грубые нарушения</b><span>без баллов</span></div>
+              <div class="cr x"><span class="no">08</span><span class="t">Раскрытие конфиденциальной информации</span><span class="p">Выявлено</span><span class="st n"><svg class="i s" viewBox="0 0 24 24" style="stroke-width:2.6"><path d="M12 8v5M12 16h.01"/></svg></span></div>
+            </div>
+          </div>
+          <div class="actions"><button class="pri">Подтвердить оценку</button><button class="sec2">Изменить оценку</button></div>
+          <div class="foot"><span>Воспроизводимо: 2 прогона совпали</span><span>gpt-6.1-sol, $0,07</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

@@ -1,5 +1,5 @@
-/* Базовые стили. Всё ограничено .cqa-root — компонент не ломает стили страницы-хоста (D365). */
-.cqa-root, .cqa-root * , .cqa-root *::before, .cqa-root *::after { box-sizing: border-box; }
+/* База. Всё ограничено .cqa-root — компонент не ломает стили страницы-хоста (Dynamics 365). */
+.cqa-root, .cqa-root *, .cqa-root *::before, .cqa-root *::after { box-sizing: border-box; }
 
 .cqa-root {
   font-family: var(--cqa-font);
@@ -9,32 +9,45 @@
   background: var(--cqa-bg);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  font-feature-settings: "tnum" 1, "cv11" 1;
+  font-feature-settings: "tnum" 1;
   min-height: 100vh;
 }
 
-.cqa-root h1, .cqa-root h2, .cqa-root h3, .cqa-root h4, .cqa-root p { margin: 0; }
-.cqa-root h1 { font-size: var(--cqa-fs-xl); font-weight: 600; letter-spacing: -0.01em; }
-.cqa-root h2 { font-size: var(--cqa-fs-lg); font-weight: 500; }
-.cqa-root h3 { font-size: var(--cqa-fs-md); font-weight: 500; }
+.cqa-root h1, .cqa-root h2, .cqa-root h3, .cqa-root p, .cqa-root ul, .cqa-root dl, .cqa-root dd { margin: 0; }
+.cqa-root ul { padding: 0; list-style: none; }
+.cqa-root h1 { font-size: var(--cqa-fs-2xl); font-weight: 600; letter-spacing: -0.01em; line-height: 1.25; }
+.cqa-root h2 { font-size: var(--cqa-fs-lg); font-weight: 600; line-height: 1.3; }
+.cqa-root h3 { font-size: var(--cqa-fs-md); font-weight: 600; }
 .cqa-root :where(button, input, select, textarea) { font: inherit; color: inherit; }
-.cqa-root a:where(:not([class])) { color: var(--cqa-info); text-decoration: none; }
-.cqa-root a:where(:not([class])):hover { text-decoration: underline; }
+.cqa-root :where(button) { cursor: pointer; }
+.cqa-root a:where(:not([class])) { color: var(--cqa-green-dark); text-decoration: underline; text-underline-offset: 3px; }
 .cqa-root a[class] { color: inherit; text-decoration: none; }
 .cqa-root :focus-visible { outline: none; box-shadow: var(--cqa-focus); border-radius: var(--cqa-r-sm); }
-.cqa-root ::selection { background: var(--cqa-brand-soft); }
+.cqa-root ::selection { background: var(--cqa-green-soft); }
 
 .cqa-root .cqa-muted { color: var(--cqa-text-2); }
 .cqa-root .cqa-faint { color: var(--cqa-text-3); }
-.cqa-root .cqa-mono { font-family: var(--cqa-mono); font-size: 0.95em; }
 .cqa-root .cqa-num { font-variant-numeric: tabular-nums; }
 .cqa-root .cqa-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.cqa-root [hidden] { display: none !important; }
+.cqa-root :where(button, a, [role="button"], select, summary, label[for]) { cursor: pointer; }
+.cqa-root :where(button, a) { touch-action: manipulation; }
 
-/* аккуратные скроллбары */
-.cqa-root .cqa-scroll { overflow: auto; scrollbar-width: thin; scrollbar-color: var(--cqa-border-strong) transparent; }
-.cqa-root .cqa-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
-.cqa-root .cqa-scroll::-webkit-scrollbar-thumb { background: var(--cqa-border-strong); border-radius: 10px; border: 3px solid transparent; background-clip: content-box; }
+/* Ссылка «к содержимому» для клавиатуры */
+.cqa-skip { position: absolute; left: 12px; top: -48px; z-index: 100; padding: 10px 14px; border-radius: var(--cqa-r); background: var(--cqa-green-dark); color: var(--cqa-on-accent) !important; font-weight: 600; transition: top var(--cqa-fast); }
+.cqa-skip:focus { top: 12px; }
+.cqa-main:focus { outline: none; box-shadow: none; }
 
-@media (prefers-reduced-motion: reduce) {
-  .cqa-root * { transition: none !important; animation: none !important; }
+@media (max-width: 760px) { .cqa-root .cqa-input, .cqa-root .cqa-select, .cqa-root .cqa-textarea { font-size: 16px; } }
+
+/* Сенсорные экраны: цели нажатия не меньше 44 px, поля ввода 16 px (без автозума iOS) */
+@media (pointer: coarse) {
+  .cqa-root .cqa-btn, .cqa-root .cqa-tabs button, .cqa-root .cqa-seg button, .cqa-root .cqa-input, .cqa-root .cqa-select { min-height: 44px; }
+  .cqa-root .cqa-btn--icon { min-width: 44px; }
+  .cqa-root .cqa-input, .cqa-root .cqa-select, .cqa-root .cqa-textarea { font-size: 16px; }
+  .cqa-root .cqa-cr__row { min-height: 52px; }
 }
+
+.cqa-root .cqa-scroll { overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--cqa-line-2) transparent; }
+.cqa-root .cqa-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.cqa-root .cqa-scroll::-webkit-scrollbar-thumb { background: var(--cqa-line-2); border-radius: 10px; border: 3px solid transparent; background-clip: content-box; }

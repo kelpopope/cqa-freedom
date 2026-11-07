@@ -116,12 +116,17 @@
     { "type": "end", "index": 13, "kind": "operator_closed" }   // kind: "farewell" | "client_left" | "connection_lost" | "operator_closed"
   ],
   "bot_context": { "from": 0, "to": 8, "summary": "Клиент спрашивает, что купить из облигаций; бот предложил поиск." },
-  "final": {                           // с учётом решений по апелляциям; без апелляций = как выше
+  "headline": "Предложение перевести деньги лично оператору",   // ← модель: 5–8 слов, суть диалога (заголовок в интерфейсе)
+  "summary": "Вместо помощи с выбором облигаций оператор предложил…", // ← модель: 1–2 предложения резюме
+  "review": null,                      // после подтверждения проверяющим: { "status": "confirmed", "by": "Елена Морозова", "at": "..." }
+  "final": {                           // с учётом решений по апелляциям и правок проверяющего; без них = как выше
     "total": 12.5,
-    "overrides": [ { "criterion_id": "c05", "from": "no", "to": "yes", "appeal_id": "ap_1" } ]
+    "criteria": [ /* те же объекты критериев, пересчитанные с подменёнными ответами */ ],
+    "overrides": [ { "criterion_id": "c05", "from": "no", "to": "yes", "appeal_id": "ap_1", "by": "operator" } ]  // by: "operator" (апелляция) | "reviewer" (правка проверяющего)
   }
 }
 ```
+В каждом критерии дополнительно: `"inline_note": "До этой реплики личность клиента не подтверждена"` — короткая подсказка, которую интерфейс показывает прямо под репликой-доказательством (необязательно).
 
 ### Appeal (апелляция)
 ```json
@@ -134,7 +139,8 @@
   "author_role": "operator",
   "created_at": "2026-11-07T19:00:00+05:00",
   "status": "open",                    // "open" | "resolved"
-  "original": { "answer": "no", "points": 0, "total": 12.5 },
+  "author_name": "Кирилл",
+  "original": { "answer": "no", "points": 0, "raw_points": 0, "total": 12.5 },
   "decision": null                     // после решения:
   // { "action": "confirm" | "change", "new_answer": "yes", "reason": "...", "reviewer_role": "reviewer",
   //   "decided_at": "...", "new_total": 27.5 }
@@ -161,8 +167,11 @@
 | GET | `/api/jobs/{job_id}` | — | `{"job_id","total","done","failed","status"}` |
 | GET | `/api/evaluations/compare` | `?checklist_id=&from_version=&to_version=&group_id=` | `[{"conversation_id","from_total","to_total","changed_criteria":[...]}]` |
 | POST | `/api/appeals` | `{"evaluation_id","criterion_id","comment"}` | Appeal |
-| GET | `/api/appeals` | `?status=open` | Appeal[] (+ фрагмент: `context: Turn[]`) |
-| POST | `/api/appeals/{id}/decision` | `{"action","new_answer"?,"reason"}` | Appeal (с `decision.new_total`) |
+| GET | `/api/appeals` | `?status=open` | Appeal[] + для каждой: `context: Turn[]` (фрагмент вокруг доказательства), `criterion_result` (строка критерия из оценки), `conversation: {conversation_id, operator_name, channel, language}`, `checklist_version`, `current_total` |
+| POST | `/api/appeals/{id}/decision` | `{"action","new_answer"?,"reason","reviewer"?}` | Appeal (с `decision.total_before` и `decision.new_total`) |
+| POST | `/api/appeals/override` | `{"evaluation_id","criterion_id","new_answer","reason"}` | Appeal (автор `reviewer`, сразу решена) — правка оценки проверяющим |
+| POST | `/api/evaluations/{id}/review` | `{"action": "confirm" \| "unconfirm", "reviewer"?}` | Evaluation с `review` |
+| GET | `/api/stats` | `?group_id=` | `{"total","evaluated","avg","gross","needs_review","reviewed","appeals_open","buckets":{"low","mid","high"},"by_language":[{"language","n","avg"}],"criteria":[{"criterion_id","title","weight","applicable","failed","na","fail_rate","lost_points"}],"risky":[{"conversation_id","operator_name","total","gross_types","headline"}]}` — экран «Обзор» |
 | GET | `/api/metrics/accuracy` | `?group_id=DEV` | `{"overall": 0.87, "per_criterion": {"c01": 0.93, ...}, "n": 30}` |
 | GET / PUT | `/api/settings` | `{"model": "gpt-6.1-sol", "self_consistency": 1}` | settings |
 
