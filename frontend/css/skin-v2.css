@@ -185,9 +185,9 @@
 .cqa-root[data-skin="v2"] .cqa-kpi--lead .cqa-kpi__hint,
 .cqa-root[data-skin="v2"] .cqa-kpi--lead .cqa-kpi__value small { color: rgba(16, 20, 16, 0.68); }
 
-/* Список диалогов скрыт — шапка и колонки на всю ширину */
+/* Список диалогов скрыт — колонка уезжает, шапка и колонки занимают всю ширину */
 @media (min-width: 1241px) {
   .cqa-root[data-skin="v2"][data-queue-mode="drawer"] .cqa-ws,
-  .cqa-root[data-skin="v2"][data-queue-mode="drawer"] .cqa-main--fill > .cqa-ws { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "hd hd" "c e"; }
-  .cqa-root[data-skin="v2"][data-queue-mode="drawer"] .cqa-ws > .cqa-q { left: 0; top: 60px; }
+  .cqa-root[data-skin="v2"][data-queue-mode="drawer"] .cqa-main--fill > .cqa-ws { grid-template-columns: 0px minmax(0, 1fr) minmax(0, 1fr); column-gap: 0px; }
+  .cqa-root[data-skin="v2"][data-queue-mode="drawer"] .cqa-ws > .cqa-c { margin-right: 14px; }
 }

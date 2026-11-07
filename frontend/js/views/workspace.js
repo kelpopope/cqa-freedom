@@ -636,20 +636,27 @@ async function reloadAll() {
 
 // Список диалогов: закреплён колонкой или скрыт и выдвигается кнопкой «Диалоги» (выбор сохраняется в браузере).
 function queueMode() { try { return localStorage.getItem('cqa.queue.mode') === 'drawer' ? 'drawer' : 'column'; } catch { return 'column'; } }
+// На широком экране список — колонка, которая плавно уезжает и выезжает, сдвигая переписку;
+// на узком (≤1240 px) — выдвижная панель поверх.
+const wide = () => matchMedia('(min-width: 1241px)').matches;
+function setQueue(mode) {
+  const rootEl = document.querySelector('.cqa-root');
+  rootEl.dataset.queueMode = mode; rootEl.dataset.queueOpen = 'false';
+  try { localStorage.setItem('cqa.queue.mode', mode); } catch { /* приватный режим */ }
+  const t = S.main.querySelector('#cqa-q-toggle'); if (t) t.setAttribute('aria-pressed', String(mode === 'column'));
+}
+function toggleQueue() {
+  const rootEl = document.querySelector('.cqa-root');
+  if (wide()) setQueue(rootEl.dataset.queueMode === 'drawer' ? 'column' : 'drawer');
+  else rootEl.dataset.queueOpen = rootEl.dataset.queueOpen === 'true' ? 'false' : 'true';
+}
 function bindDrawer() {
   const rootEl = document.querySelector('.cqa-root');
-  const pin = S.main.querySelector('#cqa-q-pin');
-  const sync = () => { const d = rootEl.dataset.queueMode === 'drawer'; pin.innerHTML = icon(d ? 'right' : 'left', 'cqa-ico--sm'); pin.title = d ? 'Закрепить список' : 'Скрыть список'; pin.setAttribute('aria-label', pin.title); };
-  pin.addEventListener('click', () => {
-    const mode = rootEl.dataset.queueMode === 'drawer' ? 'column' : 'drawer';
-    rootEl.dataset.queueMode = mode; rootEl.dataset.queueOpen = 'false';
-    try { localStorage.setItem('cqa.queue.mode', mode); } catch { /* приватный режим */ }
-    sync();
-  });
-  // Клик мимо выдвинутого списка или Esc — закрыть
+  S.main.querySelector('#cqa-q-pin')?.addEventListener('click', () => (wide() ? setQueue('drawer') : (rootEl.dataset.queueOpen = 'false')));
+  S.main.querySelector('#cqa-q-toggle')?.setAttribute('aria-pressed', String(rootEl.dataset.queueMode !== 'drawer'));
+  // Узкий экран: клик мимо выдвинутого списка закрывает его
   S.outside = (e) => { if (rootEl.dataset.queueOpen === 'true' && !e.target.closest('.cqa-q, #cqa-q-toggle, .cqa-pop')) rootEl.dataset.queueOpen = 'false'; };
   document.addEventListener('pointerdown', S.outside);
-  sync();
 }
 
 function headHtml() {
@@ -671,7 +678,7 @@ function headHtml() {
 
 function bindHead() {
   const m = S.main; const rootEl = document.querySelector('.cqa-root');
-  m.querySelector('#cqa-q-toggle')?.addEventListener('click', (e) => { e.stopPropagation(); rootEl.dataset.queueOpen = rootEl.dataset.queueOpen === 'true' ? 'false' : 'true'; });
+  m.querySelector('#cqa-q-toggle')?.addEventListener('click', (e) => { e.stopPropagation(); toggleQueue(); });
   m.querySelectorAll('[data-wstab]').forEach((b) => b.addEventListener('click', () => { rootEl.dataset.wsTab = b.dataset.wstab; }));
   m.querySelector('#cqa-import')?.addEventListener('click', async (e) => {
     const g = m.querySelector('#cqa-group').value.trim(); const b = e.currentTarget;

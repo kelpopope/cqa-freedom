@@ -240,19 +240,21 @@ button.cqa-sla:hover { background: var(--cqa-surface-2); }
 /* Элементы оформления v2 (шапка диалога, номера и баллы в пути) — в классическом скрыты */
 .cqa-hd, .cqa-path__n, .cqa-path__v { display: none; }
 
-/* ---------- Список диалогов: закреплён или выдвигается ---------- */
+/* ---------- Список диалогов: колонка уезжает и выезжает, сдвигая переписку ---------- */
 .cqa-q__head .cqa-q-pin { margin-left: auto; }
 .cqa-q-toggle span { margin-left: 6px; }
+.cqa-q-toggle[aria-pressed="true"] { background: var(--cqa-green-soft); border-color: var(--cqa-green-line); color: var(--cqa-green-dark); }
 @media (min-width: 1241px) {
-  .cqa-root[data-queue-mode="drawer"] .cqa-q-toggle { display: inline-flex !important; }
-  .cqa-root[data-queue-mode="drawer"] .cqa-ws { grid-template-columns: minmax(0, 1fr) var(--cqa-eval-w); }
-  .cqa-root[data-queue-mode="drawer"] .cqa-ws > .cqa-q {
-    position: fixed; z-index: 35; top: 0; bottom: 0; left: var(--cqa-side-w); width: 340px; border-radius: 0;
-    transform: translateX(calc(-100% - var(--cqa-side-w) - 24px)); transition: transform var(--cqa-base) var(--cqa-ease); box-shadow: var(--cqa-shadow-pop);
-  }
-  .cqa-root[data-queue-mode="drawer"][data-queue-open="true"] .cqa-ws > .cqa-q { transform: none; }
+  .cqa-q-toggle { display: inline-flex !important; }
+  .cqa-ws { transition: grid-template-columns 420ms var(--cqa-ease), column-gap 420ms var(--cqa-ease); }
+  .cqa-ws > .cqa-q { min-width: 0; transition: opacity 260ms ease, transform 420ms var(--cqa-ease), visibility 0s linear 0s; }
+  .cqa-root[data-queue-mode="drawer"] .cqa-ws { grid-template-columns: 0px minmax(0, 1fr) var(--cqa-eval-w); column-gap: 0px; }
+  .cqa-root[data-queue-mode="drawer"] .cqa-ws > .cqa-c { margin-right: 14px; }
+  .cqa-root[data-queue-mode="drawer"] .cqa-ws > .cqa-q { opacity: 0; transform: translateX(-40px); visibility: hidden; pointer-events: none; transition: opacity 200ms ease, transform 420ms var(--cqa-ease), visibility 0s linear 420ms; }
+  .cqa-ws > .cqa-c { transition: margin 420ms var(--cqa-ease); }
 }
 @media (max-width: 1240px) { .cqa-q-pin { display: none; } }
+@media (prefers-reduced-motion: reduce) { .cqa-ws, .cqa-ws > .cqa-q, .cqa-ws > .cqa-c { transition: none !important; } }
 
 /* ---------- Итог: кольцо по критериям ---------- */
 .cqa-score__main { display: flex; align-items: center; gap: 18px; margin-top: 10px; }
