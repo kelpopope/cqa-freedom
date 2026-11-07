@@ -1,6 +1,6 @@
 # CQA — контроль качества диалогов поддержки
 
-**Freedom Broker × Data Challenge'26, Nazarbayev University**
+**Команда KHANdar · Freedom Broker × Data Challenge'26, Nazarbayev University**
 
 Система оценивает работу операторов поддержки брокера по настраиваемому чек-листу с помощью LLM. По каждому критерию она выдаёт ответ, баллы, объяснение и **кликабельную реплику-доказательство**. Итог считает код с перераспределением весов при N/A, грубые ошибки отмечаются отдельно. Оператор может оспорить оценку, проверяющий подтверждает или меняет её, итог пересчитывается, история сохраняется.
 
@@ -213,7 +213,7 @@ python eval/accuracy.py --run      # заново оценить DEV и посч
 
 ```bash
 python eval/reset_demo_state.py --yes                                          # убрать следы репетиций (апелляции, правки)
-python eval/export_results.py --set prod --group <group_id> --run --team "<команда>"   # импорт → оценка → проверка → файл
+python eval/export_results.py --set prod --group <group_id> --run                  # импорт → оценка → проверка → файл
 python eval/export_results.py --set prod --group <group_id> --check            # только проверить готовый файл
 ```
 
@@ -288,6 +288,8 @@ docs/                  контракт API, исследование, диза�
 <p align="center"><img src="docs/screenshots/checklist.png" alt="Настройка чек-листа" width="80%"><br>Настройка чек-листа: каждое сохранение — новая версия</p>
 
 ## Команда
+
+**KHANdar**
 
 | | Роль |
 |---|---|

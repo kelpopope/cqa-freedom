@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "team_name": "CQA Freedom",
+  "team_name": "KHANdar",
   "model": {
     "mode": "external_api",
     "name": "gpt-6.1-sol"

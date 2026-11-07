@@ -132,7 +132,7 @@ def put_settings(values: dict[str, Any] = Body(...)):
 
 
 @router.get("/results/export")
-def export_results(group_id: str, team_name: str = "CQA Freedom", expected: Optional[int] = None):
+def export_results(group_id: str, team_name: str = "KHANdar", expected: Optional[int] = None):
     """Официальный results.json (формат организаторов 1.0) по набору + проверка формата в заголовке ответа."""
     ids = [i["conversation_id"] for i in conversation_store.list_items(group_id=group_id)]
     if not ids:

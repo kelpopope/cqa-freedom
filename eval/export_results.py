@@ -39,7 +39,7 @@ def main():
     ap.add_argument("--rerun", action="store_true", help="переоценить все диалоги набора")
     ap.add_argument("--check", action="store_true", help="только проверить существующий results.json")
     ap.add_argument("--expect", type=int, default=None, help="ожидаемое число записей (prod: 10)")
-    ap.add_argument("--team", default=os.getenv("TEAM_NAME", "CQA Freedom"))
+    ap.add_argument("--team", default=os.getenv("TEAM_NAME", "KHANdar"))
     ap.add_argument("--checklist", default="default")
     args = ap.parse_args()
 
