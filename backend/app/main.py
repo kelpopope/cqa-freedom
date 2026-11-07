@@ -14,7 +14,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import db
 from .config import FRONTEND_DIR, get_settings
-from .routers import checklists, conversations
+from .routers import checklists, conversations, evaluations
 
 
 @asynccontextmanager
@@ -50,6 +50,7 @@ def health():
 
 app.include_router(conversations.router)
 app.include_router(checklists.router)
+app.include_router(evaluations.router)
 
 
 # --- Фронт (монтируется последним, чтобы не перекрывать /api) ----------------------------------
