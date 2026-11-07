@@ -65,8 +65,9 @@ def get_job(job_id: str):
 @router.get("/evaluations/compare")
 def compare_versions(checklist_id: str = "default", from_version: int = 1, to_version: int = 2,
                      group_id: Optional[str] = None):
-    """«Было → стало» после изменения чек-листа: итоги и изменившиеся ответы по каждому диалогу."""
-    return analytics.compare(checklist_id, from_version, to_version, group_id)
+    """«Было → стало» после изменения чек-листа (массив по контракту). changed_criteria — id изменившихся,
+    добавленных и удалённых критериев; подробности — в changes / added / removed."""
+    return analytics.compare(checklist_id, from_version, to_version, group_id)["items"]
 
 
 @router.get("/evaluations/{evaluation_id}")

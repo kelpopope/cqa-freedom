@@ -100,13 +100,14 @@ def build_timeline(transcript: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if end_kind is None:
         end_idx = next((t["index"] for t in reversed(transcript) if t["speaker"] == "operator" and not t.get("on_hold")), None)
         end_kind = "farewell" if end_idx is not None else None
-    return [
+    events = [
         {"type": "escalation", "index": escalation},
         {"type": "operator_greeting", "index": greeting},
         {"type": "identity_verified", "index": identity},
-        {"type": "data_disclosure", "index": None},
         {"type": "end", "index": end_idx, "kind": end_kind},
     ]
+    # Только произошедшие события: отсутствие идентификации — это отсутствие события, а не событие с null.
+    return [e for e in events if e["index"] is not None]
 
 
 def build_bot_context(transcript: list[dict[str, Any]], timeline: list[dict[str, Any]], summary: str) -> dict | None:

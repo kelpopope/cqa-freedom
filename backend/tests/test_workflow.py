@@ -135,10 +135,10 @@ def test_full_defense_scenario(client):
     job2 = wait_job(client, client.post("/api/evaluate/batch", json={"group_id": "CTRL"}).json()["job_id"])
     assert job2["checklist_version"] == 2 and job2["done"] == 2
     cmp = client.get("/api/evaluations/compare", params={"from_version": 1, "to_version": 2, "group_id": "CTRL"}).json()
-    assert cmp["criteria_added"] == ["c09"] and cmp["criteria_removed"] == ["c05"]
-    row = next(i for i in cmp["items"] if i["conversation_id"] == "p1-ru-001")
+    assert isinstance(cmp, list) and len(cmp) == 2                     # массив, как в API_CONTRACT
+    row = next(i for i in cmp if i["conversation_id"] == "p1-ru-001")
     assert row["from_total"] == 100.0 and "c09" in row["added"] and "c05" in row["removed"]
-    assert row["changed_criteria"] == []           # решение по c07 (критерий не менялся) перенесено в v2
+    assert row["changed_criteria"] == ["c05", "c09"] and row["changes"] == []   # c07: решение перенесено в v2
     ev_v2 = client.get("/api/conversations/p1-ru-001").json()["evaluation"]
     carried = ev_v2["final"]["overrides"]
     assert [(o["criterion_id"], o["to"]) for o in carried] == [("c07", "yes")] and carried[0]["carried_from"]

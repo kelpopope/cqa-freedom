@@ -106,7 +106,7 @@ def test_timeline():
     tr = normalize_conversation(RECORD, "DEV")["transcript"]
     tl = {e["type"]: e for e in build_timeline(tr)}
     assert tl["escalation"]["index"] == 2 and tl["operator_greeting"]["index"] == 3
-    assert tl["identity_verified"]["index"] is None
+    assert "identity_verified" not in tl and "data_disclosure" not in tl     # не произошло — нет в ленте
     assert tl["end"] == {"type": "end", "index": 6, "kind": "client_left"}
 
 
