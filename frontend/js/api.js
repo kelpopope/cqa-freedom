@@ -42,6 +42,7 @@ const liveApi = {
   evaluateBatch: (body) => http('POST', '/evaluate/batch', { checklist_id: 'default', ...body }),
   getJob: (id) => http('GET', `/jobs/${id}`),
   reviewEvaluation: (id, body) => http('POST', `/evaluations/${id}/review`, body),
+  coach: (id, criterion_id, refresh = false) => http('POST', `/evaluations/${id}/coach`, { criterion_id, refresh }),
   listAppeals: (status) => http('GET', `/appeals${qs({ status })}`),
   createAppeal: (body) => http('POST', '/appeals', body),
   decideAppeal: (id, body) => http('POST', `/appeals/${id}/decision`, body),

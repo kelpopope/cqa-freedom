@@ -7,7 +7,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from ..services import accuracy, analytics, jobs, results_export
+from ..services import accuracy, analytics, coaching, jobs, results_export
 from ..services import conversations as conversation_store
 from ..services import settings as settings_service
 from ..services.evaluator import EvaluationError, evaluate, get_evaluation, history, repeat, set_review
@@ -23,6 +23,11 @@ class EvaluateRequest(BaseModel):
 
 class RepeatRequest(BaseModel):
     evaluation_id: str
+
+
+class CoachRequest(BaseModel):
+    criterion_id: str
+    refresh: bool = False
 
 
 class ReviewRequest(BaseModel):
@@ -143,6 +148,15 @@ async def evaluate_repeat(req: RepeatRequest):
     """Воспроизводимость: повторный независимый прогон той же оценки и доля совпавших ответов."""
     try:
         return await run_in_threadpool(repeat, req.evaluation_id)
+    except EvaluationError as e:
+        return JSONResponse(status_code=e.status_code, content={"error": str(e)})
+
+
+@router.post("/evaluations/{evaluation_id}/coach")
+async def coach(evaluation_id: str, req: CoachRequest):
+    """«Как надо было ответить»: пример правильной реплики для нарушенного критерия (на баллы не влияет)."""
+    try:
+        return await run_in_threadpool(coaching.suggest, evaluation_id, req.criterion_id, req.refresh)
     except EvaluationError as e:
         return JSONResponse(status_code=e.status_code, content={"error": str(e)})
 

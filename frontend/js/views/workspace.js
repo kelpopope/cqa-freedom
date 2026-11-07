@@ -290,6 +290,37 @@ function mathText(c, r) {
   return `${c.weight} × ${r.answer} / ${max} = ${pts(r.raw_points)} из ${c.weight}`;
 }
 
+// «Как надо было ответить»: у нарушенного критерия — кнопка; готовый пример хранится в оценке (coaching).
+function coachSlot(c, r, ev) {
+  if (!api.coach || !ev?.evaluation_id || !failed(c, r) && !(c.type === 'flag' && r.answer === 'yes')) return '';
+  const done = ev.coaching?.[c.id];
+  return `<div class="cqa-coach" data-coach="${c.id}">${done ? coachCard(done) : `<button type="button" class="cqa-btn cqa-btn--sm cqa-coach__btn" data-coach-go="${c.id}">${icon('sparkle', 'cqa-ico--sm')}Как надо было ответить</button>`}</div>`;
+}
+
+function coachCard(x) {
+  const txt = esc(x.suggested).replace(/\[уточнить у специалиста\]/gi, '<mark>[уточнить у специалиста]</mark>');
+  const where = x.turn_index == null ? '' : x.mode === 'rewrite' ? `вместо реплики #${turnNo(x.turn_index)}` : `рядом с репликой #${turnNo(x.turn_index)}`;
+  return `<div class="cqa-coach__card">
+    <div class="cqa-coach__h">${icon('sparkle', 'cqa-ico--sm')}<b>Как надо было ответить</b>${where ? `<button type="button" class="cqa-link" data-goto="${x.turn_index}">${where}</button>` : ''}</div>
+    ${x.original ? `<div class="cqa-coach__was"><span>Было</span><p>${esc(x.original)}</p></div>` : ''}
+    <div class="cqa-coach__now"><span>Лучше так</span><p>${txt}</p></div>
+    ${x.what_changed?.length ? `<ul class="cqa-coach__why">${x.what_changed.map((w) => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}
+    <div class="cqa-coach__foot"><button type="button" class="cqa-link cqa-link--accent" data-coach-copy>Скопировать</button><button type="button" class="cqa-link" data-coach-go="${esc(x.criterion_id)}" data-refresh="1">Другой вариант</button><span class="cqa-faint">пример от модели, на балл не влияет</span></div>
+  </div>`;
+}
+
+async function coachGo(btn) {
+  const id = btn.dataset.coachGo; const slot = btn.closest('[data-coach]'); const ev = S.data.evaluation;
+  btn.disabled = true; btn.innerHTML = '<span class="cqa-spin"></span>Модель пишет пример…';
+  try {
+    const x = await api.coach(ev.evaluation_id, id, btn.dataset.refresh === '1');
+    ev.coaching = { ...(ev.coaching || {}), [id]: x };
+    slot.innerHTML = coachCard(x);
+  } catch (err) {
+    toast(err.message, 'bad'); btn.disabled = false; btn.innerHTML = `${icon('sparkle', 'cqa-ico--sm')}Как надо было ответить`;
+  }
+}
+
 function critHtml(c, r, open) {
   const ev = S.data.evaluation; const rl = role();
   const v = answerView(c, r.answer).cls; const isFlag = c.type === 'flag';
@@ -315,6 +346,7 @@ function critHtml(c, r, open) {
         <p class="cqa-cr__expl">${esc(refs1(r.answer === 'na' ? r.na_reason : r.explanation || ''))}</p>
         ${evs ? `<div class="cqa-cr__label">Доказательство</div><div class="cqa-evs">${evs}</div>` : ''}
         ${range}
+        ${coachSlot(c, r, ev)}
         ${r.confidence === 'low' || r.evidence_valid === false ? `<div class="cqa-cr__meta"><span class="cqa-conf cqa-conf--low">${r.confidence === 'low' ? 'Низкая уверенность' : 'Цитата не найдена'}</span>${r.uncertainty_reason ? `<span class="cqa-faint">${esc(refs1(r.uncertainty_reason))}</span>` : ''}</div>` : ''}
         <div class="cqa-cr__foot"><span>${esc(mathText(c, r))}</span><span class="cqa-push">${act}</span></div>
       </div></div></div>
@@ -439,6 +471,8 @@ function bindColumns() {
   const ws = S.main.querySelector('.cqa-ws');
   ws.onclick = async (e) => {
     const t = e.target;
+    const cg = t.closest('[data-coach-go]'); if (cg) { coachGo(cg); return; }
+    const cc = t.closest('[data-coach-copy]'); if (cc) { const txt = cc.closest('.cqa-coach__card').querySelector('.cqa-coach__now p').innerText; navigator.clipboard?.writeText(txt).then(() => toast('Пример скопирован'), () => toast('Не удалось скопировать', 'bad')); return; }
     const pl = t.closest('[data-pill]'); if (pl) { pathGo(pl.dataset.pill); return; }
     const go = t.closest('[data-goto]'); if (go) { scrollToMsg(Number(go.dataset.goto)); return; }
     const co = t.closest('[data-crit-open]'); if (co) { openCrit(co.dataset.critOpen); return; }

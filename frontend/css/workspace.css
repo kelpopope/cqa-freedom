@@ -287,3 +287,20 @@ button.cqa-sla:hover { background: var(--cqa-surface-2); }
 .cqa-more__body { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding-top: 4px; }
 .cqa-more__body .cqa-msg__tags { margin-top: 0; }
 .cqa-more__body .cqa-inline { margin-left: 0; }
+
+/* «Как надо было ответить» */
+.cqa-coach { margin-top: 10px; }
+.cqa-coach__btn { gap: 6px; }
+.cqa-coach__card { padding: 12px 14px; border: 1px solid var(--cqa-green-line); border-radius: var(--cqa-r); background: var(--cqa-green-softer); }
+.cqa-coach__h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--cqa-green-dark); }
+.cqa-coach__h b { font-weight: 600; }
+.cqa-coach__h .cqa-link { margin-left: auto; font-size: var(--cqa-fs-xs); }
+.cqa-coach__was, .cqa-coach__now { margin-top: 10px; }
+.cqa-coach__was span, .cqa-coach__now span { display: block; margin-bottom: 3px; font-size: var(--cqa-fs-xs); color: var(--cqa-text-3); }
+.cqa-coach__was p { color: var(--cqa-text-3); text-decoration: line-through; text-decoration-color: var(--cqa-bad-line); }
+.cqa-coach__now p { padding: 8px 10px; border-radius: 8px; background: var(--cqa-surface); border: 1px solid var(--cqa-line); color: var(--cqa-text); line-height: 1.5; }
+.cqa-coach__now mark { background: var(--cqa-warn-bg); color: var(--cqa-warn); padding: 0 2px; border-radius: 3px; }
+.cqa-coach__why { margin: 8px 0 0; padding-left: 18px; font-size: var(--cqa-fs-sm); color: var(--cqa-text-2); }
+.cqa-coach__why li + li { margin-top: 2px; }
+.cqa-coach__foot { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: var(--cqa-fs-sm); }
+.cqa-coach__foot .cqa-faint { margin-left: auto; font-size: var(--cqa-fs-xs); }

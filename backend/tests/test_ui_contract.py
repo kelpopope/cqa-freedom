@@ -113,3 +113,26 @@ def test_results_csv_for_evaluated_set(client):
     head = rows[0]; row = next(r for r in rows if r[0] == "p1-ru-022")
     assert row[head.index("status")] == "оценён" and row[head.index("gross_error")] == "да"
     assert row[head.index("gross_types")] == "private_service"
+
+
+def test_coaching_suggestion_is_cached_and_only_for_failed(client, monkeypatch):
+    from backend.app.services import coaching
+    calls = []
+
+    def fake(messages, schema, **kw):
+        calls.append(messages[1]["content"])
+        return ({"suggested": "Здравствуйте! Подобрать облигации можно в разделе «Котировки». Могу ещё помочь?",
+                 "what_changed": ["Убрано предложение частной услуги"], "needs_specialist": False},
+                {"cost_usd": 0.004})
+    monkeypatch.setattr(coaching, "complete_json", fake)
+    ev = ev_of(client, "p1-ru-022")
+    r = client.post(f"/api/evaluations/{ev['evaluation_id']}/coach", json={"criterion_id": "c08"}).json()
+    assert r["mode"] == "rewrite" and r["original"] and r["suggested"].startswith("Здравствуйте") and r["cached"] is False
+    assert "Язык клиента: RU" in calls[0] and "База знаний" in calls[0]
+    again = client.post(f"/api/evaluations/{ev['evaluation_id']}/coach", json={"criterion_id": "c08"}).json()
+    assert again["cached"] is True and len(calls) == 1                      # повторный показ — без вызова модели
+    assert ev_of(client, "p1-ru-022")["total"] == ev["total"]              # на баллы не влияет
+    ok = next(c for c in ev["criteria"] if c["answer"] == "yes" and c["criterion_id"] != "c08")
+    bad = client.post(f"/api/evaluations/{ev['evaluation_id']}/coach", json={"criterion_id": ok["criterion_id"]})
+    assert bad.status_code == 422
+    assert client.post("/api/evaluations/nope/coach", json={"criterion_id": "c01"}).status_code == 404
