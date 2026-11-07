@@ -127,37 +127,38 @@ function markQueue() {
 }
 
 /* ---------- Переписка ---------- */
-// Навигатор по нарушениям: вместо мелкой временной шкалы — крупные кнопки «реплика → какие критерии нарушены»
-// и стрелки «предыдущее / следующее нарушение». Каждая кнопка ведёт к реплике в переписке.
+// Путь по чек-листу: по кнопке на каждый критерий в порядке чек-листа — все критерии всегда на виду.
+// ✓ выполнен, ✗ нарушен (с номером реплики), ◐ частично (шкала), пунктир — N/A.
+// Клик открывает критерий справа и ведёт к реплике-доказательству; повторный клик — к следующей.
+const PATH_NAME = { c01: 'Контакт', c02: 'Потребн.', c03: 'Идентиф.', c04: 'Консульт.', c05: 'Эмпатия', c06: 'Ведение', c07: 'Заверш.', c08: 'Грубые' };
+
 function mapHtml(conv, ev, meta) {
-  const byTurn = new Map();
-  rowsOf(ev).forEach((r) => {
-    const c = meta.get(r.criterion_id);
-    if (!c || !(failed(c, r) || (c.type === 'flag' && r.answer === 'yes'))) return;
-    (r.evidence || []).forEach((e) => {
-      if (!byTurn.has(e.index)) byTurn.set(e.index, []);
-      const name = c.type === 'flag' ? 'Грубое нарушение' : SHORT(c);
-      if (!byTurn.get(e.index).includes(name)) byTurn.get(e.index).push(name);
-    });
-  });
-  const turns = [...byTurn.keys()].sort((a, b) => a - b);
-  S.navTurns = turns; S.navLabels = turns.map((i) => byTurn.get(i).join(', ')); S.navPos = 0;
-  if (!turns.length) return `<div class="cqa-nav cqa-nav--ok">${icon('check', 'cqa-ico--sm')}<span>Нарушений в репликах нет</span></div>`;
-  return `<div class="cqa-nav" aria-label="Реплики с нарушениями">
-    <span class="cqa-nav__label">${icon('alert', 'cqa-ico--sm')}<span id="cqa-nav-pos">${turns.length > 1 ? `1 из ${turns.length}` : 'Нарушение'}</span></span>
-    <button type="button" class="cqa-nav__chip" id="cqa-nav-chip" data-nav="0" title="Перейти к реплике"><b>#${turnNo(turns[0])}</b><span>${esc(S.navLabels[0])}</span></button>
-    ${turns.length > 1 ? `<div class="cqa-nav__step"><button type="button" class="cqa-btn cqa-btn--icon cqa-btn--sm" data-step="-1" aria-label="Предыдущее нарушение">${icon('up', 'cqa-ico--sm')}</button><button type="button" class="cqa-btn cqa-btn--icon cqa-btn--sm" data-step="1" aria-label="Следующее нарушение">${icon('down', 'cqa-ico--sm')}</button></div>` : ''}
-  </div>`;
+  const rows = rowsOf(ev);
+  S.pathEv = {}; S.pathPos = {};
+  const pills = [...meta.values()].map((c) => {
+    const r = rows.find((x) => x.criterion_id === c.id);
+    if (!r) return '';
+    const idx = [...new Set((r.evidence || []).map((e) => e.index))].sort((a, b) => a - b);
+    let kind;
+    if (c.type === 'flag') kind = r.answer === 'yes' ? 'bad' : 'ok';
+    else if (r.answer === 'na') kind = 'na';
+    else kind = { yes: 'ok', no: 'bad', mid: 'mid' }[answerView(c, r.answer).cls] || 'ok';
+    const jump = kind === 'bad' || kind === 'mid' ? idx : [];
+    S.pathEv[c.id] = jump;
+    const ico = { ok: 'check', bad: c.type === 'flag' ? 'alert' : 'x', mid: 'alert', na: 'minus' }[kind];
+    const ref = kind === 'na' ? 'N/A' : jump.length ? `#${turnNo(jump[0])}${jump.length > 1 ? `+${jump.length - 1}` : ''}` : '';
+    const verdict = kind === 'na' ? 'N/A' : c.type === 'flag' ? (kind === 'bad' ? 'выявлено' : 'нет') : answerView(c, r.answer).label;
+    const tip = `${c.num} ${c.title}: ${verdict}${jump.length ? `, реплики ${jump.map((i) => `#${turnNo(i)}`).join(', ')}` : ''}`;
+    return `<button type="button" class="cqa-path__p cqa-path__p--${kind}" data-pill="${c.id}" title="${esc(tip)}" aria-label="${esc(tip)}"><span class="cqa-path__t">${esc(PATH_NAME[c.id] || c.title)}</span><span class="cqa-path__s">${icon(ico, 'cqa-ico--sm')}${ref ? `<span class="cqa-path__r">${ref}</span>` : ''}</span></button>`;
+  }).join('');
+  return `<div class="cqa-path" aria-label="Путь по чек-листу">${pills}</div>`;
 }
 
-// Шаг по нарушениям: обновляет счётчик и кнопку, прокручивает переписку к реплике.
-function navTo(pos) {
-  const t = S.navTurns || []; if (!t.length) return;
-  S.navPos = (pos + t.length) % t.length;
-  const chip = S.main.querySelector('#cqa-nav-chip');
-  if (chip) { chip.dataset.nav = S.navPos; chip.innerHTML = `<b>#${turnNo(t[S.navPos])}</b><span>${esc(S.navLabels[S.navPos])}</span>`; }
-  const lbl = S.main.querySelector('#cqa-nav-pos'); if (lbl && t.length > 1) lbl.textContent = `${S.navPos + 1} из ${t.length}`;
-  scrollToMsg(t[S.navPos]);
+function pathGo(id) {
+  openCrit(id);
+  const list = S.pathEv?.[id] || []; if (!list.length) return;
+  const pos = ((S.pathPos[id] ?? -1) + 1) % list.length; S.pathPos[id] = pos;
+  scrollToMsg(list[pos]);
 }
 
 function msgHtml(m, conv, tags, isCall, hit) {
@@ -419,8 +420,7 @@ function bindColumns() {
   const ws = S.main.querySelector('.cqa-ws');
   ws.onclick = async (e) => {
     const t = e.target;
-    const st = t.closest('[data-step]'); if (st) { navTo((S.navPos ?? 0) + Number(st.dataset.step)); return; }
-    const nv = t.closest('[data-nav]'); if (nv) { navTo(Number(nv.dataset.nav)); return; }
+    const pl = t.closest('[data-pill]'); if (pl) { pathGo(pl.dataset.pill); return; }
     const go = t.closest('[data-goto]'); if (go) { scrollToMsg(Number(go.dataset.goto)); return; }
     const co = t.closest('[data-crit-open]'); if (co) { openCrit(co.dataset.critOpen); return; }
     const rg = t.closest('[data-range]');
