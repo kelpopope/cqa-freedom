@@ -276,3 +276,15 @@ button.cqa-sla:hover { background: var(--cqa-surface-2); }
 .cqa-donut__tip { position: absolute; z-index: 5; left: 50%; top: calc(100% + 6px); transform: translateX(-50%); width: max-content; max-width: 240px; padding: 8px 10px; border-radius: 8px; background: var(--cqa-text); color: var(--cqa-surface); font-size: var(--cqa-fs-sm); line-height: 1.35; box-shadow: var(--cqa-shadow-2); pointer-events: none; }
 .cqa-donut__tip b { display: block; font-weight: 600; }
 .cqa-donut__tip span { display: block; opacity: 0.85; }
+
+/* Подробности под репликой: метки критериев и пояснение модели — свёрнуты, раскрываются по клику */
+.cqa-more { margin-top: 6px; }
+.cqa-more > summary { display: inline-flex; align-items: center; gap: 6px; padding: 2px 4px; border-radius: 6px; list-style: none; cursor: pointer; font-size: var(--cqa-fs-xs); color: var(--cqa-text-3); user-select: none; }
+.cqa-more > summary::-webkit-details-marker { display: none; }
+.cqa-more > summary:hover { color: var(--cqa-text); background: var(--cqa-surface-2); }
+.cqa-more > summary .cqa-ico { transition: transform var(--cqa-fast); }
+.cqa-more[open] > summary .cqa-ico { transform: rotate(180deg); }
+.cqa-more__dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cqa-bad); }
+.cqa-more__body { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding-top: 4px; }
+.cqa-more__body .cqa-msg__tags { margin-top: 0; }
+.cqa-more__body .cqa-inline { margin-left: 0; }

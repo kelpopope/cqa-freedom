@@ -163,14 +163,14 @@ function pathGo(id) {
   scrollToMsg(list[pos]);
 }
 
-function msgHtml(m, conv, tags, isCall, hit) {
+function msgHtml(m, conv, tags, isCall, hit, note = '') {
   if (m.speaker === 'system') return `<div class="cqa-sys ${/закрыл|прерван|lost|покинул/i.test(m.text) ? 'cqa-sys--bad' : ''}" id="msg-${m.index}" data-msg="${m.index}">${esc(fmtTimestamp(m.timestamp))}, ${esc(m.text.replace(/\.$/, '').toLowerCase())}</div>`;
   const name = m.speaker === 'operator' ? `${conv.operator_name || 'Оператор'}, оператор` : m.speaker === 'bot' ? 'Бот AIM' : 'Клиент';
   const ts = isCall ? `<button type="button" class="cqa-seek" data-seek="${m.offset_sec}" title="Перейти к моменту записи">${esc(fmtTimestamp(m.timestamp))}</button>` : `<span>${esc(fmtTimestamp(m.timestamp))}</span>`;
   return `<div class="cqa-msg cqa-msg--${m.speaker} ${m.on_hold ? 'cqa-msg--hold' : ''} ${hit ? 'is-hit' : ''}" id="msg-${m.index}" data-msg="${m.index}">
     <span class="cqa-msg__num">${turnNo(m.index)}</span>
     <div><div class="cqa-msg__bub"><div class="cqa-msg__h"><b>${esc(name)}</b>${ts}</div>${m.on_hold ? '<div class="cqa-msg__hold">На удержании: клиент этого не слышит, в оценку не входит</div>' : ''}<div class="cqa-msg__t">${esc(m.text)}</div></div>
-    ${tags.length ? `<div class="cqa-msg__tags">${tags.map((t) => `<button type="button" class="cqa-tag ${t.cls === 'mid' ? 'cqa-tag--mid' : ''}" data-crit-open="${t.id}">${t.num} ${esc(t.short)}</button>`).join('')}</div>` : ''}</div>
+    ${tags.length || note ? `<details class="cqa-more"><summary>${tags.length ? '<i class="cqa-more__dot"></i>' : ''}Подробности${tags.length ? ` · ${tags.map((t) => t.num).join(', ')}` : ''}${icon('down', 'cqa-ico--sm')}</summary><div class="cqa-more__body">${tags.length ? `<div class="cqa-msg__tags">${tags.map((t) => `<button type="button" class="cqa-tag ${t.cls === 'mid' ? 'cqa-tag--mid' : ''}" data-crit-open="${t.id}">${t.num} ${esc(t.short)}</button>`).join('')}</div>` : ''}${note}</div></details>` : ''}</div>
   </div>`;
 }
 
@@ -194,7 +194,7 @@ function threadHtml(conv, ev, meta) {
   const post = firstOp > 0 ? conv.transcript.slice(firstOp) : conv.transcript;
   const bc = deriveBotContext(conv.transcript);
   const preHasHits = pre.some((m) => hits.has(m.index));
-  const one = (m) => msgHtml(m, conv, tagsBy.get(m.index) || [], isCall, hits.has(m.index)) + (notes.has(m.index) ? `<div class="cqa-inline ${notes.get(m.index).kind === 'expected' ? 'cqa-inline--expected' : ''}">${icon('info', 'cqa-ico--sm')}${esc(refs1(notes.get(m.index).text))}</div>` : '');
+  const one = (m) => msgHtml(m, conv, tagsBy.get(m.index) || [], isCall, hits.has(m.index), notes.has(m.index) ? `<div class="cqa-inline ${notes.get(m.index).kind === 'expected' ? 'cqa-inline--expected' : ''}">${icon('info', 'cqa-ico--sm')}${esc(refs1(notes.get(m.index).text))}</div>` : '');
   return `
     <div class="cqa-day">Начало ${isCall ? 'звонка' : 'переписки'}</div>
     ${pre.length ? `<div class="cqa-botctx"><b>${bc.client.length ? 'Клиент написал боту:' : 'Переписка с ботом'}</b>${bc.client.map((m) => `<div class="cqa-botctx__q">«${esc(m.text)}»</div>`).join('')}
@@ -436,6 +436,7 @@ function scrollToMsg(index, { flash = true } = {}) {
   const pre = S.main.querySelector('#cqa-pre');
   if (pre && pre.contains(el)) pre.hidden = false;
   document.querySelector('.cqa-root').dataset.wsTab = 'chat';
+  el.querySelector('details.cqa-more')?.setAttribute('open', ''); // переход к реплике раскрывает её подробности
   el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   if (flash) { el.classList.remove('is-flash'); void el.offsetWidth; el.classList.add('is-flash'); setTimeout(() => el.classList.remove('is-flash'), 1800); }
   const m = S.data.conversation.transcript[index];
