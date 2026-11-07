@@ -1,0 +1,56 @@
+/* Спокойный слой: меньше визуального шума при долгой работе.
+   Содержание не меняется — только контраст, размер текста, линии и насыщенность красного.
+   Подключается последним, правила — переопределения поверх основных стилей. */
+
+.cqa-root {
+  /* Текст чуть крупнее и контрастнее: мелкий серый текст утомлял сильнее всего */
+  --cqa-fs-xs: 12.5px;
+  --cqa-fs-sm: 13.5px;
+  --cqa-fs: 14.5px;
+  --cqa-text: #23251f;
+  --cqa-text-2: #464d44;
+  --cqa-text-3: #5d655b;
+
+  /* Фон и линии мягче: меньше резких границ между блоками */
+  --cqa-bg: #f2f3ef;
+  --cqa-surface: #fdfdfb;
+  --cqa-line: #e9ebe5;
+  --cqa-line-2: #d9ddd4;
+
+  /* Красный приглушён: сигнал остаётся, но не «кричит» со всех сторон */
+  --cqa-bad: #a9443a;
+  --cqa-bad-bg: #faf2f0;
+  --cqa-bad-line: #ecd5d0;
+  line-height: 1.55;
+}
+
+.cqa-root[data-theme="dark"] {
+  --cqa-text: #e6e9e3;
+  --cqa-text-2: #bcc3b9;
+  --cqa-text-3: #959d92;
+  --cqa-bad: #e48f84;
+  --cqa-bad-bg: rgba(228, 143, 132, 0.09);
+  --cqa-bad-line: rgba(228, 143, 132, 0.28);
+}
+
+/* Реплики с нарушением: полоса слева вместо красной рамки вокруг всего пузыря */
+.cqa-root .cqa-msg.is-hit .cqa-msg__bub { box-shadow: inset 3px 0 0 var(--cqa-bad); }
+.cqa-root .cqa-msg.is-hit.is-lit .cqa-msg__bub { box-shadow: inset 3px 0 0 var(--cqa-bad), 0 0 0 2px var(--cqa-green-dark); }
+
+/* Метки критериев под репликой: нейтральные, красная только точка */
+.cqa-root .cqa-tag { border-color: var(--cqa-line); color: var(--cqa-text-2); font-weight: 500; gap: 6px; }
+.cqa-root .cqa-tag::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--cqa-bad); flex: none; }
+.cqa-root .cqa-tag:hover { background: var(--cqa-surface-2); border-color: var(--cqa-line-2); }
+.cqa-root .cqa-tag--mid { border-color: var(--cqa-line); color: var(--cqa-text-2); }
+.cqa-root .cqa-tag--mid::before { background: var(--cqa-warn-dot); }
+
+/* Подсказка модели под репликой: серая, акцент — только иконка */
+.cqa-root .cqa-inline { background: var(--cqa-surface-2); color: var(--cqa-text-2); }
+.cqa-root .cqa-inline .cqa-ico { color: var(--cqa-bad); }
+.cqa-root .cqa-inline--expected { background: transparent; border-color: var(--cqa-line-2); }
+
+/* Бейджи «Нарушение» в списке: без заливки, чтобы столбец не был сплошь красным */
+.cqa-root .cqa-qi .cqa-badge--bad { background: transparent; box-shadow: inset 0 0 0 1px var(--cqa-bad-line); }
+
+/* Карточки: без теней, тонкая линия */
+.cqa-root .cqa-card { box-shadow: none; }
