@@ -301,7 +301,17 @@ def assemble(conversation: dict[str, Any], checklist: dict[str, Any], llm: dict[
     turns = build_turn_review(conversation, checklist, criteria, llm.get("turn_review"))
     for row in criteria:                 # в каких репликах отмечен критерий — для подсветки в транскрипте
         row["issue_turns"] = [t["index"] for t in turns if any(x["criterion_id"] == row["criterion_id"] for x in t["issues"])]
+        notes = [x["note"] for t in turns for x in t["issues"] if x["criterion_id"] == row["criterion_id"] and x.get("note")]
+        row["inline_note"] = _short(notes[0], 140) if notes else None        # подсказка под репликой-доказательством
+        row["uncertainty_reason"] = _uncertainty(row)
+    applicable_weight = sum(c.get("weight") or 0 for c, r in zip(checklist["criteria"], criteria)
+                            if c["type"] != "flag" and r["answer"] != "na")
     return {
+        "headline": (llm.get("headline") or "").strip() or None,
+        "summary": (llm.get("summary") or "").strip() or None,
+        "applicable_weight": applicable_weight,
+        "review": None,
+        "reproducibility": None,
         "criteria": criteria,
         "sections": scored["sections"],
         "total": scored["total"],
@@ -316,16 +326,32 @@ def assemble(conversation: dict[str, Any], checklist: dict[str, Any], llm: dict[
     }
 
 
+def _uncertainty(row: dict[str, Any]) -> str | None:
+    if not row.get("evidence_valid", True):
+        return "Цитата-доказательство не найдена в указанной реплике — проверьте вручную"
+    votes = row.get("votes") or []
+    if len(set(map(str, votes))) > 1:
+        return f"Прогоны модели разошлись: {', '.join(map(str, votes))} — выбран ответ большинства"
+    if row.get("confidence") == "low":
+        return "Модель отметила, что диалог допускает разные трактовки"
+    return None
+
+
 def recompute_final(evaluation: dict[str, Any], checklist: dict[str, Any]) -> dict[str, Any]:
-    """Пересчёт финала по решениям апелляций: ответы ИИ + overrides → scoring.py (п. 7 контракта)."""
+    """Пересчёт финала по решениям апелляций и правкам проверяющего: ответы ИИ + overrides → scoring.py."""
     answers = {c["criterion_id"]: c["answer"] for c in evaluation["criteria"]}
     overrides = evaluation.get("final", {}).get("overrides", [])
     scored = score(checklist, apply_overrides(answers, overrides))
     overridden = {o["criterion_id"] for o in overrides}
+    ai_rows = {c["criterion_id"]: c for c in evaluation["criteria"]}
+    crit = {c["id"]: c for c in checklist["criteria"]}
     final = {
         "total": scored["total"],
+        "applicable_weight": sum(crit[r["criterion_id"]].get("weight") or 0 for r in scored["criteria"]
+                                 if crit[r["criterion_id"]]["type"] != "flag" and r["answer"] != "na"),
         "overrides": overrides,
-        "criteria": [{**{k: r[k] for k in ("criterion_id", "answer", "raw_points", "points", "effective_weight")},
+        "criteria": [{**ai_rows.get(r["criterion_id"], {}),
+                      **{k: r[k] for k in ("criterion_id", "answer", "raw_points", "points", "effective_weight")},
                       "overridden": r["criterion_id"] in overridden} for r in scored["criteria"]],
         "sections": scored["sections"],
         "gross_error": scored["gross_error"],
@@ -426,11 +452,14 @@ def vote(checklist: dict[str, Any], samples: list[dict[str, Any]]) -> tuple[dict
                        normalize_answer(c, merged["criteria"][c["id"]]["answer"]) for c in checklist["criteria"])
         best = max(samples, key=agreement)
         merged["turn_review"] = best.get("turn_review") or []
+        merged["headline"], merged["summary"] = best.get("headline", ""), best.get("summary", "")
+    else:
+        merged["headline"], merged["summary"] = samples[0].get("headline", ""), samples[0].get("summary", "")
     return merged, votes
 
 
 def evaluate(conversation_id: str, checklist_id: str = "default", version: int | None = None,
-             reasoning_effort: str | None = None, samples: int | None = None) -> dict[str, Any]:
+             reasoning_effort: str | None = None, samples: int | None = None, persist: bool = True) -> dict[str, Any]:
     conversation = conversation_store.get(conversation_id)
     if conversation is None:
         raise EvaluationError(f"Диалог {conversation_id} не найден", 404)
@@ -498,7 +527,8 @@ def evaluate(conversation_id: str, checklist_id: str = "default", version: int |
         recompute_final(evaluation, checklist)
         evaluation["status"] = "done"
         evaluation["usage"] = usage
-        _save(evaluation)
+        if persist:
+            _save(evaluation)
         return evaluation
 
     evaluation.update({"status": "error", "error": last_error, "usage": usage, "criteria": [], "sections": [],
@@ -507,3 +537,39 @@ def evaluate(conversation_id: str, checklist_id: str = "default", version: int |
                        "bot_context": None, "final": {"total": None, "overrides": []}})
     _save(evaluation)
     raise EvaluationError(f"Оценка не удалась: {last_error}", 502, evaluation)
+
+
+def repeat(evaluation_id: str) -> dict[str, Any]:
+    """Проверка воспроизводимости: та же версия чек-листа, новый независимый прогон; сравниваем ответы."""
+    ev = get_evaluation(evaluation_id)
+    if ev is None:
+        raise EvaluationError(f"Оценка {evaluation_id} не найдена", 404)
+    again = evaluate(ev["conversation_id"], ev["checklist_id"], ev["checklist_version"], persist=False)
+    a = {c["criterion_id"]: c["answer"] for c in ev["criteria"]}
+    b = {c["criterion_id"]: c["answer"] for c in again["criteria"]}
+    diff = [k for k in a if a.get(k) != b.get(k)]
+    prev = ev.get("reproducibility") or {}
+    ev["reproducibility"] = {
+        "runs": (prev.get("runs") or 1) + 1,
+        "agreement": round(1 - len(diff) / max(len(a), 1), 4),
+        "differing_criteria": diff,
+        "repeat_answers": {k: b[k] for k in diff},
+        "repeat_total": again["total"],
+        "checked_at": datetime.now(ASTANA).isoformat(timespec="seconds"),
+        "cost_usd": (again.get("usage") or {}).get("cost_usd"),
+    }
+    _save(ev)
+    return ev
+
+
+def set_review(evaluation_id: str, action: str, reviewer: str | None = None) -> dict[str, Any]:
+    """Проверяющий подтверждает оценку (или снимает подтверждение)."""
+    ev = get_evaluation(evaluation_id)
+    if ev is None:
+        raise EvaluationError(f"Оценка {evaluation_id} не найдена", 404)
+    if action not in ("confirm", "unconfirm"):
+        raise EvaluationError("action: confirm или unconfirm", 422)
+    ev["review"] = ({"status": "confirmed", "by": reviewer or "Проверяющий",
+                     "at": datetime.now(ASTANA).isoformat(timespec="seconds")} if action == "confirm" else None)
+    _save(ev)
+    return ev

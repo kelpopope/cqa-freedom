@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from ..services import accuracy, analytics, jobs, results_export
 from ..services import conversations as conversation_store
 from ..services import settings as settings_service
-from ..services.evaluator import EvaluationError, evaluate, get_evaluation, history
+from ..services.evaluator import EvaluationError, evaluate, get_evaluation, history, repeat, set_review
 
 router = APIRouter(prefix="/api", tags=["evaluations"])
 
@@ -19,6 +19,15 @@ class EvaluateRequest(BaseModel):
     conversation_id: str
     checklist_id: str = "default"
     version: Optional[int] = None
+
+
+class RepeatRequest(BaseModel):
+    evaluation_id: str
+
+
+class ReviewRequest(BaseModel):
+    action: str = "confirm"
+    reviewer: Optional[str] = None
 
 
 class BatchRequest(BaseModel):
@@ -127,3 +136,26 @@ def export_results(group_id: str, team_name: str = "CQA Freedom", expected: Opti
     problems = results_export.validate(doc, ids, expected)
     return JSONResponse(content=doc, headers={"X-Results-Valid": "true" if not problems else "false",
                                               "Content-Disposition": f'attachment; filename="results_{group_id}.json"'})
+
+
+@router.post("/evaluate/repeat")
+async def evaluate_repeat(req: RepeatRequest):
+    """Воспроизводимость: повторный независимый прогон той же оценки и доля совпавших ответов."""
+    try:
+        return await run_in_threadpool(repeat, req.evaluation_id)
+    except EvaluationError as e:
+        return JSONResponse(status_code=e.status_code, content={"error": str(e)})
+
+
+@router.post("/evaluations/{evaluation_id}/review")
+def review(evaluation_id: str, req: ReviewRequest):
+    try:
+        return set_review(evaluation_id, req.action, req.reviewer)
+    except EvaluationError as e:
+        return JSONResponse(status_code=e.status_code, content={"error": str(e)})
+
+
+@router.get("/stats")
+def overview_stats(group_id: Optional[str] = None):
+    """Экран «Обзор» руководителя."""
+    return analytics.stats(group_id)

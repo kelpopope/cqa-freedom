@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-PROMPT_VERSION = "p5.3"
+PROMPT_VERSION = "p6"
 
 GENERAL_RULES = """Ты — эксперт отдела контроля качества брокера Freedom Broker. Ты оцениваешь работу ОПЕРАТОРА поддержки в одном диалоге по чек-листу.
 
@@ -37,7 +37,8 @@ GENERAL_RULES = """Ты — эксперт отдела контроля кач�
 - explanation — 2–3 коротких предложения ПО-РУССКИ: (1) что сделал или не сделал оператор — со ссылкой [#9]; (2) почему это даёт именно такой ответ по правилу критерия; для шкалы — почему эта ступень, а не соседняя выше. Не пересказывай весь диалог, не придумывай того, чего нет в тексте. Для N/A заполни na_reason: какое условие выполнено.
 - confidence: "low", если диалог допускает разные трактовки, иначе "high".
 
-Дополнительно верни client_request: одно предложение по-русски — с чем пришёл клиент (с учётом сказанного боту)."""
+Дополнительно верни client_request: одно предложение по-русски — с чем пришёл клиент (с учётом сказанного боту).
+После оценки критериев верни headline — 5–8 слов по-русски: суть диалога и главный итог или нарушение (например, «Предложение перевести деньги лично оператору», «Вход в кабинет: решено, без представления»), и summary — 1–2 предложения по-русски: с чем пришёл клиент и как отработал оператор."""
 
 TURN_REVIEW_RULES = """
 Разбор по репликам (turn_review) — делай ПЕРЕД ответами по критериям:
@@ -185,4 +186,6 @@ def build_response_schema(checklist: dict[str, Any], turn_review: bool = True) -
         props["turn_review"] = _turn_review_schema(checklist)
     props["criteria"] = {"type": "object", "additionalProperties": False, "required": list(criteria),
                          "properties": criteria}
+    props["headline"] = {"type": "string"}            # после вердиктов — заголовок и резюме для интерфейса
+    props["summary"] = {"type": "string"}
     return {"type": "object", "additionalProperties": False, "required": list(props), "properties": props}

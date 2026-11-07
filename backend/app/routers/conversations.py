@@ -7,6 +7,7 @@ from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 
 from ..services import conversations as store
+from ..services.evaluator import history
 from ..services.fetcher import FetchError, fetch_dataset
 
 router = APIRouter(prefix="/api", tags=["conversations"])
@@ -58,4 +59,6 @@ def get_conversation(conversation_id: str):
         raise HTTPException(404, f"Диалог {conversation_id} не найден")
     evaluation = store.latest_evaluation(conversation_id)
     appeals = store.appeals_for(evaluation["evaluation_id"]) if evaluation else []
-    return {"conversation": conv, "evaluation": evaluation, "appeals": appeals}
+    return {"conversation": conv, "evaluation": evaluation, "appeals": appeals,
+            "history": [{k: h.get(k) for k in ("evaluation_id", "checklist_version", "total", "final_total", "created_at", "status")}
+                        for h in history(conversation_id)]}

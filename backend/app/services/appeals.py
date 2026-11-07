@@ -65,7 +65,25 @@ def _context(appeal: dict[str, Any]) -> list[dict[str, Any]]:
     return tr[lo:hi + 1]
 
 
-def create(evaluation_id: str, criterion_id: str, comment: str, author_role: str = "operator") -> dict[str, Any]:
+DEFAULT_REVIEWER = "Проверяющий"
+
+
+def view(appeal: dict[str, Any]) -> dict[str, Any]:
+    """Апелляция для экранов: + фрагмент диалога, строка критерия из оценки, данные диалога, текущий итог."""
+    a = dict(appeal)
+    conv = conversation_store.get(a["conversation_id"]) or {}
+    ev = get_evaluation(a["evaluation_id"]) or {}
+    a["context"] = _context(a)
+    a["criterion_result"] = next((c for c in (ev.get("final") or {}).get("criteria", ev.get("criteria", []))
+                                  if c["criterion_id"] == a["criterion_id"]), None)
+    a["conversation"] = {k: conv.get(k) for k in ("conversation_id", "operator_name", "channel", "language")}
+    a["checklist_version"] = ev.get("checklist_version")
+    a["current_total"] = (ev.get("final") or {}).get("total", ev.get("total"))
+    return a
+
+
+def create(evaluation_id: str, criterion_id: str, comment: str, author_role: str = "operator",
+           author_name: str | None = None, proposed_answer: Any = None) -> dict[str, Any]:
     ev = get_evaluation(evaluation_id)
     if ev is None:
         raise AppealError(f"Оценка {evaluation_id} не найдена", 404)
@@ -83,6 +101,9 @@ def create(evaluation_id: str, criterion_id: str, comment: str, author_role: str
             raise AppealError(f"По критерию {criterion_id} уже есть открытая апелляция", 409)
 
     final_row = next((c for c in ev["final"].get("criteria", []) if c["criterion_id"] == criterion_id), row)
+    if not author_name:
+        conv = conversation_store.get(ev["conversation_id"]) or {}
+        author_name = conv.get("operator_name") if author_role == "operator" else DEFAULT_REVIEWER
     appeal = {
         "appeal_id": f"ap_{uuid.uuid4().hex[:10]}",
         "evaluation_id": evaluation_id,
@@ -91,9 +112,12 @@ def create(evaluation_id: str, criterion_id: str, comment: str, author_role: str
         "criterion_title": row.get("title"),
         "comment": comment,
         "author_role": author_role or "operator",
+        "author_name": author_name,
+        "proposed_answer": proposed_answer,
         "created_at": _now(),
         "status": "open",
-        "original": {"answer": final_row["answer"], "points": final_row.get("points"), "total": ev["final"]["total"],
+        "original": {"answer": final_row["answer"], "points": final_row.get("points"),
+                     "raw_points": final_row.get("raw_points"), "total": ev["final"]["total"],
                      "ai_answer": row["answer"], "ai_total": ev["total"],
                      "explanation": row.get("explanation"), "evidence": row.get("evidence")},
         "decision": None,
@@ -112,14 +136,11 @@ def list_appeals(status: str | None = None, conversation_id: str | None = None,
     sql += " ORDER BY created_at DESC, rowid DESC"
     with db.connect() as conn:
         items = [db.loads(r["data"]) for r in conn.execute(sql, args)]
-    if with_context:
-        for a in items:
-            a["context"] = _context(a)
-    return items
+    return [view(a) for a in items] if with_context else items
 
 
 def decide(appeal_id: str, action: str, reason: str, new_answer: Any = None,
-           reviewer_role: str = "reviewer") -> dict[str, Any]:
+           reviewer_role: str = "reviewer", reviewer: str | None = None) -> dict[str, Any]:
     appeal = get(appeal_id)
     if appeal is None:
         raise AppealError(f"Апелляция {appeal_id} не найдена", 404)
@@ -135,7 +156,9 @@ def decide(appeal_id: str, action: str, reason: str, new_answer: Any = None,
     checklist = checklist_store.get(ev["checklist_id"], ev["checklist_version"])
     criterion = next(c for c in checklist["criteria"] if c["id"] == appeal["criterion_id"])
 
-    decision = {"action": action, "reason": reason, "reviewer_role": reviewer_role or "reviewer", "decided_at": _now()}
+    decision = {"action": action, "reason": reason, "reviewer_role": reviewer_role or "reviewer",
+                "reviewer": reviewer or DEFAULT_REVIEWER, "decided_at": _now(),
+                "total_before": ev["final"]["total"], "new_answer": appeal["original"]["answer"]}
     if action == "change":
         try:
             new = normalize_answer(criterion, new_answer)
@@ -146,7 +169,7 @@ def decide(appeal_id: str, action: str, reason: str, new_answer: Any = None,
             raise AppealError("Новый ответ совпадает с текущим — используйте confirm")
         overrides = [o for o in ev["final"].get("overrides", []) if o["criterion_id"] != criterion["id"]]
         overrides.append({"criterion_id": criterion["id"], "from": current, "to": new, "appeal_id": appeal_id,
-                          "reason": reason, "decided_at": decision["decided_at"]})
+                          "reason": reason, "decided_at": decision["decided_at"], "by": appeal.get("author_role", "operator")})
         ev["final"]["overrides"] = overrides
         decision["new_answer"] = new
     recompute_final(ev, checklist)
@@ -156,4 +179,16 @@ def decide(appeal_id: str, action: str, reason: str, new_answer: Any = None,
     appeal["decision"] = decision
     appeal["status"] = "resolved"
     _save(appeal)
-    return appeal
+    return view(appeal)
+
+
+def override(evaluation_id: str, criterion_id: str, new_answer: Any, reason: str, reviewer: str | None = None) -> dict[str, Any]:
+    """Правка оценки проверяющим = апелляция от проверяющего, сразу решённая (история сохраняется так же)."""
+    ap = create(evaluation_id, criterion_id, reason, author_role="reviewer", author_name=reviewer or DEFAULT_REVIEWER,
+                proposed_answer=new_answer)
+    try:
+        return decide(ap["appeal_id"], "change", reason, new_answer, reviewer=reviewer)
+    except AppealError:
+        with db.connect() as conn:                 # не оставляем «висящую» апелляцию, если правка недопустима
+            conn.execute("DELETE FROM appeals WHERE appeal_id=?", (ap["appeal_id"],))
+        raise

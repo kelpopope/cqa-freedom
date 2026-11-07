@@ -238,7 +238,7 @@ def test_turn_review_expected_marker_for_missed_action(default_checklist):
 
 def test_schema_puts_turn_review_before_criteria(default_checklist):
     schema = prompts.build_response_schema(default_checklist)
-    assert list(schema["properties"]) == ["client_request", "turn_review", "criteria"]
+    assert list(schema["properties"]) == ["client_request", "turn_review", "criteria", "headline", "summary"]
     assert "turn_review" not in prompts.build_response_schema(default_checklist, turn_review=False)["properties"]
     user = prompts.build_user_prompt(normalize_conversation(RECORD, "DEV"))
     assert "Реплики оператора для разбора: [3], [5]" in user

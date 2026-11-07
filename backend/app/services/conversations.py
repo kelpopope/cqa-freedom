@@ -87,7 +87,8 @@ def list_items(group_id: str | None = None, language: str | None = None, channel
                JOIN (SELECT conversation_id, MAX(rowid) rid FROM evaluations GROUP BY conversation_id) m
                  ON m.rid = e.rowid"""):
             evals[r["conversation_id"]] = db.loads(r["data"])
-        appeal_rows = conn.execute("SELECT evaluation_id, status FROM appeals").fetchall()
+        appeal_rows = [r for r in conn.execute("SELECT evaluation_id, status, data FROM appeals").fetchall()
+                       if (db.loads(r["data"]) or {}).get("author_role", "operator") == "operator"]
     appeal_status: dict[str, str] = {}
     for r in appeal_rows:
         if r["status"] == "open" or r["evaluation_id"] not in appeal_status:
@@ -109,6 +110,10 @@ def list_items(group_id: str | None = None, language: str | None = None, channel
                 "needs_review": bool(ev.get("needs_review")),
                 "checklist_version": ev.get("checklist_version"),
                 "status": ev.get("status"),
+                "headline": ev.get("headline"),
+                "gross_types": gross_ai.get("types") or [],
+                "created_at": ev.get("created_at"),
+                "review": ev.get("review"),
             }
         if risk and not (summary and (summary["gross_error"] or summary["needs_review"])):
             continue
@@ -131,6 +136,7 @@ def list_items(group_id: str | None = None, language: str | None = None, channel
             "channel": c["channel"],
             "language": c["language"],
             "turns": len(c["transcript"]),
+            "duration_sec": next((t["offset_sec"] for t in reversed(c["transcript"]) if t.get("offset_sec") is not None), 0),
             "operator_name": c.get("operator_name"),
             "evaluation": summary,
             "appeal_status": appeal_status.get(summary["evaluation_id"]) if summary else None,

@@ -132,3 +132,63 @@ def summary(checklist_id: str = "default", version: int | None = None, group_id:
         "needs_review": sorted(review),
         "with_overrides": appealed,
     }
+
+
+def stats(group_id: str | None = None, checklist_id: str = "default") -> dict[str, Any]:
+    """Экран «Обзор» руководителя: средний балл, распределение, грубые нарушения, слабые критерии, риски."""
+    from . import conversations as conversation_store
+    items = conversation_store.list_items(group_id=group_id)
+    evs = {}
+    for it in items:
+        if it["evaluation"] and it["evaluation"]["status"] == "done":
+            ev = conversation_store.latest_evaluation(it["conversation_id"])
+            if ev:
+                evs[it["conversation_id"]] = ev
+    totals = [ev["final"]["total"] for ev in evs.values() if ev["final"].get("total") is not None]
+    cl = checklist_store.get(checklist_id)
+    criteria = []
+    for c in (cl or {"criteria": []})["criteria"]:
+        if c["type"] == "flag":
+            continue
+        applicable = failed = na = 0
+        lost = 0.0
+        for ev in evs.values():
+            row = next((r for r in ev["final"].get("criteria") or ev["criteria"] if r["criterion_id"] == c["id"]), None)
+            if not row:
+                continue
+            if row["answer"] == "na":
+                na += 1
+                continue
+            applicable += 1
+            raw = row.get("raw_points") or 0
+            if raw < (c.get("weight") or 0):
+                failed += 1
+                lost += (c.get("weight") or 0) - raw
+        criteria.append({"criterion_id": c["id"], "title": c["title"], "weight": c.get("weight"),
+                         "applicable": applicable, "failed": failed, "na": na,
+                         "fail_rate": round(failed / applicable, 4) if applicable else 0, "lost_points": round(lost, 2)})
+    criteria.sort(key=lambda x: -x["fail_rate"])
+    by_lang = []
+    for lang in ("RU", "KZ", "EN"):
+        t = [ev["final"]["total"] for cid, ev in evs.items() if ev["final"].get("total") is not None
+             and next((i["language"] for i in items if i["conversation_id"] == cid), None) == lang]
+        by_lang.append({"language": lang, "n": len(t), "avg": round(sum(t) / len(t), 2) if t else None})
+    with db.connect() as conn:
+        appeals_open = conn.execute("SELECT COUNT(*) FROM appeals WHERE status='open'").fetchone()[0]
+    gross_items = [i for i in items if i["evaluation"] and i["evaluation"]["gross_error"]]
+    return {
+        "total": len(items),
+        "evaluated": len(evs),
+        "avg": round(sum(totals) / len(totals), 2) if totals else None,
+        "gross": len(gross_items),
+        "needs_review": sum(1 for i in items if (i["evaluation"] or {}).get("needs_review") or i["appeal_status"] == "open"),
+        "reviewed": sum(1 for ev in evs.values() if (ev.get("review") or {}).get("status") == "confirmed"),
+        "appeals_open": appeals_open,
+        "buckets": {"low": sum(t < 60 for t in totals), "mid": sum(60 <= t < 85 for t in totals),
+                    "high": sum(t >= 85 for t in totals)},
+        "by_language": by_lang,
+        "criteria": criteria,
+        "risky": [{"conversation_id": i["conversation_id"], "operator_name": i["operator_name"],
+                   "total": i["evaluation"]["final_total"], "gross_types": i["evaluation"]["gross_types"],
+                   "headline": i["evaluation"]["headline"]} for i in gross_items],
+    }
