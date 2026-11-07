@@ -1,112 +1,97 @@
-/* Дизайн-токены CQA. Палитра — из логотипа Freedom Broker:
-   светло-зелёный щита #4DB560, тёмно-зелёный #1D5A3A, почти чёрный словесного знака #1B1A17. */
+/* Токены CQA — дизайн B в палитре Freedom Broker.
+   Бренд: #4DB560 (светлый щит), #1D5A3A (тёмный щит), #1B1A17 (словесный знак). */
 .cqa-root {
-  --cqa-font: "Segoe UI", "Inter", system-ui, -apple-system, "Roboto", "Helvetica Neue", Arial, sans-serif;
-  --cqa-mono: "Cascadia Mono", "Consolas", ui-monospace, monospace;
+  --cqa-font: "Segoe UI", Inter, system-ui, -apple-system, "Roboto", Arial, sans-serif;
+  --cqa-mono: "Cascadia Mono", Consolas, ui-monospace, monospace;
 
-  /* бренд */
   --cqa-green: #4db560;
   --cqa-green-dark: #1d5a3a;
-  --cqa-ink: #1b1a17;
+  --cqa-green-hover: #174a30;
+  --cqa-green-soft: #eaf4e9;
+  --cqa-green-softer: #f3f8f2;
+  --cqa-green-line: #bfddbb;
 
-  /* поверхности: мягкий тёплый нейтральный фон, чтобы не слепил белый */
-  --cqa-bg: #f4f5f2;
+  --cqa-bg: #f5f6f3;
   --cqa-surface: #ffffff;
-  --cqa-surface-2: #f1f3ef;
-  --cqa-surface-3: #e6e9e4;
+  --cqa-surface-2: #f6f7f4;
+  --cqa-surface-3: #eef0eb;
+  --cqa-line: #e5e8e1;
+  --cqa-line-2: #d3d8cf;
   --cqa-hover: rgba(27, 26, 23, 0.035);
-  --cqa-selected: #eaf3ec;
 
-  /* линии */
-  --cqa-border: rgba(27, 26, 23, 0.08);
-  --cqa-border-strong: rgba(27, 26, 23, 0.16);
-
-  /* текст: вторичный темнее обычного — меньше напряжения для глаз */
   --cqa-text: #1b1a17;
-  --cqa-text-2: #4f544f;
-  --cqa-text-3: #7b807a;
-  --cqa-text-inverse: #ffffff;
+  --cqa-text-2: #4f564d;
+  --cqa-text-3: #7d847b;
+  --cqa-on-accent: #ffffff;
 
-  /* акцент = тёмно-зелёный логотипа (контраст на белом ~8:1) */
-  --cqa-brand: #1d5a3a;
-  --cqa-brand-strong: #1d5a3a;
-  --cqa-brand-hover: #174a30;
-  --cqa-brand-bright: #4db560;
-  --cqa-brand-soft: #eaf3ec;
-  --cqa-brand-text: #1d5a3a;
-
-  /* семантика — приглушённая */
-  --cqa-ok: #2f8a48;
-  --cqa-ok-soft: #eaf3ec;
-  --cqa-bad: #b93a2f;
-  --cqa-bad-strong: #9a2f26;
-  --cqa-bad-soft: #fbefed;
-  --cqa-warn: #9a6512;
+  --cqa-bad: #b23a2e;
+  --cqa-bad-bg: #fcefec;
+  --cqa-bad-line: #f1cfc9;
+  --cqa-warn: #8a5a10;
+  --cqa-warn-bg: #fbf1dd;
   --cqa-warn-dot: #d9a03f;
-  --cqa-warn-soft: #fbf4e6;
-  --cqa-na: #7b807a;
-  --cqa-na-soft: #eef0ed;
   --cqa-info: #1d5a3a;
-  --cqa-info-soft: #eaf3ec;
+  --cqa-info-bg: #eaf4e9;
 
-  --cqa-flash: rgba(77, 181, 96, 0.16);
-  --cqa-link-hover: rgba(29, 90, 58, 0.07);
+  --cqa-flash: rgba(77, 181, 96, 0.22);
+  --cqa-focus: 0 0 0 3px rgba(29, 90, 58, 0.28);
+  --cqa-overlay: rgba(27, 26, 23, 0.36);
+  --cqa-shadow-1: 0 1px 2px rgba(27, 26, 23, 0.04);
+  --cqa-shadow-2: 0 6px 20px rgba(27, 26, 23, 0.08);
+  --cqa-shadow-pop: 0 18px 48px rgba(27, 26, 23, 0.18), 0 2px 8px rgba(27, 26, 23, 0.06);
 
-  /* геометрия */
-  --cqa-r-sm: 6px;
-  --cqa-r: 8px;
-  --cqa-r-lg: 12px;
+  --cqa-r-sm: 7px;
+  --cqa-r: 10px;
+  --cqa-r-lg: 14px;
   --cqa-r-pill: 999px;
-  --cqa-shadow-1: 0 1px 2px rgba(27, 26, 23, 0.05);
-  --cqa-shadow-2: 0 4px 16px rgba(27, 26, 23, 0.07);
-  --cqa-shadow-pop: 0 12px 32px rgba(27, 26, 23, 0.14), 0 2px 6px rgba(27, 26, 23, 0.06);
-  --cqa-focus: 0 0 0 3px rgba(77, 181, 96, 0.35);
 
-  /* типографика: крупнее — читается часами */
   --cqa-fs-xs: 12px;
   --cqa-fs-sm: 13px;
   --cqa-fs: 14px;
   --cqa-fs-md: 15px;
   --cqa-fs-lg: 17px;
   --cqa-fs-xl: 22px;
-  --cqa-fs-xxl: 36px;
+  --cqa-fs-2xl: 28px;
+  --cqa-fs-3xl: 32px;
 
-  --cqa-fast: 120ms;
-  --cqa-base: 200ms;
   --cqa-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --cqa-header-h: 56px;
+  --cqa-fast: 140ms;
+  --cqa-base: 220ms;
+  --cqa-slow: 600ms;
+
+  --cqa-side-w: 220px;
+  --cqa-queue-w: 300px;
+  --cqa-eval-w: 440px;
 }
 
 .cqa-root[data-theme="dark"] {
-  --cqa-bg: #121412;
-  --cqa-surface: #191c19;
-  --cqa-surface-2: #202420;
-  --cqa-surface-3: #2a2f2a;
+  --cqa-green: #5cc56f;
+  --cqa-green-dark: #7fd08c;
+  --cqa-green-hover: #9ddca7;
+  --cqa-green-soft: rgba(92, 197, 111, 0.13);
+  --cqa-green-softer: rgba(92, 197, 111, 0.07);
+  --cqa-green-line: rgba(92, 197, 111, 0.35);
+  --cqa-bg: #121512;
+  --cqa-surface: #191d19;
+  --cqa-surface-2: #1f241f;
+  --cqa-surface-3: #2a302a;
+  --cqa-line: #2b322b;
+  --cqa-line-2: #3b443b;
   --cqa-hover: rgba(255, 255, 255, 0.04);
-  --cqa-selected: rgba(77, 181, 96, 0.12);
-  --cqa-border: rgba(255, 255, 255, 0.08);
-  --cqa-border-strong: rgba(255, 255, 255, 0.16);
-  --cqa-text: #ecefea;
-  --cqa-text-2: #b5bbb3;
-  --cqa-text-3: #868c85;
-  --cqa-brand: #4db560;
-  --cqa-brand-strong: #4db560;
-  --cqa-brand-hover: #63c374;
-  --cqa-brand-soft: rgba(77, 181, 96, 0.12);
-  --cqa-brand-text: #7ccf8b;
-  --cqa-ok: #6cc47d;
-  --cqa-ok-soft: rgba(108, 196, 125, 0.12);
-  --cqa-bad: #ef8578;
-  --cqa-bad-strong: #f29a8f;
-  --cqa-bad-soft: rgba(239, 133, 120, 0.12);
-  --cqa-warn: #e2b25c;
-  --cqa-warn-dot: #e2b25c;
-  --cqa-warn-soft: rgba(226, 178, 92, 0.12);
-  --cqa-na: #868c85;
-  --cqa-na-soft: rgba(255, 255, 255, 0.06);
-  --cqa-info: #7ccf8b;
-  --cqa-info-soft: rgba(77, 181, 96, 0.12);
-  --cqa-flash: rgba(77, 181, 96, 0.18);
-  --cqa-link-hover: rgba(77, 181, 96, 0.1);
-  --cqa-shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.55);
+  --cqa-text: #edf0ea;
+  --cqa-text-2: #b8bfb5;
+  --cqa-text-3: #8a9287;
+  --cqa-on-accent: #0f1a12;
+  --cqa-bad: #f08a7d;
+  --cqa-bad-bg: rgba(240, 138, 125, 0.12);
+  --cqa-bad-line: rgba(240, 138, 125, 0.35);
+  --cqa-warn: #e5b866;
+  --cqa-warn-bg: rgba(229, 184, 102, 0.13);
+  --cqa-info: #7fd08c;
+  --cqa-info-bg: rgba(92, 197, 111, 0.13);
+  --cqa-flash: rgba(92, 197, 111, 0.2);
+  --cqa-focus: 0 0 0 3px rgba(127, 208, 140, 0.35);
+  --cqa-overlay: rgba(0, 0, 0, 0.55);
+  --cqa-shadow-2: 0 6px 20px rgba(0, 0, 0, 0.4);
+  --cqa-shadow-pop: 0 18px 48px rgba(0, 0, 0, 0.6);
 }
