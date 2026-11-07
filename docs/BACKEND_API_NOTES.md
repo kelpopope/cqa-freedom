@@ -53,3 +53,11 @@
 1. `PUT /api/checklists/default` (новая версия, сразу активна; вес/формулировка/новый критерий).
 2. `POST /api/evaluate/batch {"group_id": "<контрольный>"}` → опрос `GET /api/jobs/{id}`.
 3. `GET /api/evaluations/compare?from_version=1&to_version=2&group_id=…` → экран «было → стало».
+
+## Радар комплаенса (часть 6)
+Грубые ошибки проверяются двумя независимыми способами: моделью и детерминированными правилами RU/KZ/EN (`backend/app/services/rules.py`). Решение принимает модель, правила — второе мнение.
+- `gross_error.rules_agree` — `true`, если правила и модель согласны; `rules_types` — что нашли правила; `rules_signals` — `[{type, index, quote, rule}]` (в т.ч. `identity_skip` — «подтверждение не нужно»).
+- У критерия-флага (c08): `source: "llm+rules"` при согласии, `rules_signals` — те же сигналы.
+- Расхождение → `needs_review: true`, причина в `review_reasons` начинается с «Радар:». Идея для UI: бейдж «Подтверждено правилами» при `llm+rules`, «Радар: расхождение» — при `rules_agree: false`.
+- `timeline` получает событие `{"type": "data_disclosure", "index": N}` — раскрытие данных счёта до подтверждения личности.
+- На DEV правила совпали с эталоном 8/8, без ложных срабатываний.

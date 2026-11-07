@@ -14,6 +14,7 @@ from typing import Any
 
 from .. import db
 from . import checklists as checklist_store
+from . import rules
 from . import conversations as conversation_store
 from .llm_client import LLMError, complete_json
 from .prompts import PROMPT_VERSION, build_prompt, build_response_schema
@@ -137,6 +138,46 @@ def _save(evaluation: dict[str, Any]) -> None:
              evaluation["checklist_version"], evaluation["status"], db.dumps(evaluation)))
 
 
+_IDENTITY_CRITERION = re.compile(r"идентифик|identif|жеке бас", re.I)
+FLAG_LABELS = {"insult": "оскорбление", "private_service": "услуга в обход компании",
+               "confidential_disclosure": "раскрытие конфиденциальной информации"}
+
+
+def apply_rules(checklist: dict[str, Any], transcript: list[dict[str, Any]], criteria: list[dict[str, Any]],
+                gross: dict[str, Any], timeline: list[dict[str, Any]], review_reasons: list[str]) -> None:
+    """Радар комплаенса: сверяет решение модели по грубым ошибкам с детерминированными правилами.
+    Решение остаётся за моделью; совпадение → source «llm+rules», расхождение → needs_review с причиной."""
+    radar = rules.analyze(transcript)
+    flag_rows = [r for r, c in zip(criteria, checklist["criteria"])
+                 if c["type"] == "flag" and set(c.get("flag_types") or []) & set(rules.FLAGS)]
+    signals = [s for s in radar["signals"] if s["type"] in rules.FLAGS]
+    gross["rules_types"] = radar["types"]
+    gross["rules_signals"] = radar["signals"]
+    if flag_rows:
+        llm_flag, rules_flag = bool(gross["flag"]), bool(radar["types"])
+        gross["rules_agree"] = llm_flag == rules_flag
+        for row in flag_rows:
+            row["rules_signals"] = signals
+            if gross["rules_agree"] and rules_flag:
+                row["source"] = "llm+rules"
+        if rules_flag and not llm_flag:
+            found = "; ".join(f"{FLAG_LABELS.get(s['type'], s['type'])} в реплике [#{s['index']}] «{s['quote']}»"
+                              for s in signals[:3])
+            review_reasons.append(f"Радар: правила нашли признаки грубой ошибки, модель — нет: {found}")
+        elif llm_flag and not rules_flag:
+            review_reasons.append("Радар: модель отметила грубую ошибку, явных формулировок правила не нашли — "
+                                  "проверьте вручную")
+
+    # Раскрытие данных счёта до подтверждения личности → критерий идентификации должен быть «Нет»
+    if radar["first_disclosure"] is not None:
+        timeline.append({"type": "data_disclosure", "index": radar["first_disclosure"]})
+        timeline.sort(key=lambda e: (e["index"] if e["index"] is not None else 10 ** 6))
+        for row, c in zip(criteria, checklist["criteria"]):
+            if c["type"] == "binary" and _IDENTITY_CRITERION.search(c["title"]) and row["answer"] != "no":
+                review_reasons.append(f"Радар: данные счёта раскрыты до подтверждения личности [#{radar['first_disclosure']}],"
+                                      f" а по критерию «{c['title']}» стоит «{row['answer']}»")
+
+
 def assemble(conversation: dict[str, Any], checklist: dict[str, Any], llm: dict[str, Any],
              votes: dict[str, list] | None = None) -> dict[str, Any]:
     """Из ответа LLM собирает Evaluation (без id/usage): проверка доказательств, баллы, флаги, needs_review."""
@@ -183,12 +224,14 @@ def assemble(conversation: dict[str, Any], checklist: dict[str, Any], llm: dict[
         criteria.append(row)
 
     timeline = build_timeline(transcript)
+    gross = {"flag": scored["gross_error"], "types": sorted(set(gross_types)), "evidence": gross_evidence,
+             "rules_agree": None}
+    apply_rules(checklist, transcript, criteria, gross, timeline, review_reasons)
     return {
         "criteria": criteria,
         "sections": scored["sections"],
         "total": scored["total"],
-        "gross_error": {"flag": scored["gross_error"], "types": sorted(set(gross_types)),
-                        "evidence": gross_evidence, "rules_agree": None},
+        "gross_error": gross,
         "needs_review": bool(review_reasons),
         "review_reasons": review_reasons,
         "timeline": timeline,
