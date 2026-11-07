@@ -1,0 +1,196 @@
+{
+ "group_id": "DEV",
+ "n": 60,
+ "labeled": 60,
+ "overall": 0.9542,
+ "overall_confident": 0.9975,
+ "per_criterion": {
+  "c01": 1.0,
+  "c02": 0.9167,
+  "c03": 1.0,
+  "c04": 0.8833,
+  "c05": 0.9833,
+  "c06": 0.9,
+  "c07": 0.95,
+  "c08": 1.0
+ },
+ "per_criterion_confident": {
+  "c01": 1.0,
+  "c02": 0.9811,
+  "c03": 1.0,
+  "c04": 1.0,
+  "c05": 1.0,
+  "c06": 1.0,
+  "c07": 1.0,
+  "c08": 1.0
+ },
+ "per_language": {
+  "EN": 0.9417,
+  "KZ": 0.9833,
+  "RU": 0.9458
+ },
+ "total_mae": 3.25,
+ "gross": {
+  "tp": 8,
+  "fp": 0,
+  "fn": 0,
+  "precision": 1.0,
+  "recall": 1.0
+ },
+ "mismatches": [
+  {
+   "conversation_id": "p1-ru-003",
+   "criterion_id": "c06",
+   "expected": 10,
+   "got": 7,
+   "uncertain": true
+  },
+  {
+   "conversation_id": "p1-ru-004",
+   "criterion_id": "c02",
+   "expected": "na",
+   "got": "no",
+   "uncertain": true
+  },
+  {
+   "conversation_id": "p1-ru-005",
+   "criterion_id": "c02",
+   "expected": "na",
+   "got": "no",
+   "uncertain": true
+  },
+  {
+   "conversation_id": "p1-ru-005",
+   "criterion_id": "c04",
+   "expected": 15,
+   "got": 10,
+   "uncertain": true
+  },
+  {
+   "conversation_id": "p1-ru-007",
+   "criterion_id": "c06",
+   "expected": 10,
+   "got": 7,
+   "uncertain": true
+  },
+  {
+   "conversation_id": "p1-ru-007",
+   "criterion_id": "c07",
+   "expected": "no",
+   "got": "yes",
+   "uncertain": true
+  },
+  {
+   "conversation_id": "p1-ru-009",
+   "criterion_id": "c04",
+   "expected": 5,
+   "got": 10,
+   "uncertain": true
+  },
+  {
+   "conversation_id": "p1-ru-010",
+   "criterion_id": "c04",
+   "expected": 20,
+   "got": 10,
+   "uncertain": true
+  },
+  {
+   "conversation_id": "p1-ru-011",
+   "criterion_id": "c02",
+   "expected": "na",
+   "got": "no",
+   "uncertain": false
+  },
+  {
+   "conversation_id": "p1-ru-018",
+   "criterion_id": "c06",
+   "expected": 4,
+   "got": 7,
+   "uncertain": true
+  },
+  {
+   "conversation_id": "p1-ru-020",
+   "criterion_id": "c04",
+   "expected": 20,
+   "got": 10,
+   "uncertain": true
+  },
+  {
+   "conversation_id": "p1-ru-024",
+   "criterion_id": "c04",
+   "expected": 20,
+   "got": 10,
+   "uncertain": true
+  },
+  {
+   "conversation_id": "p1-ru-026",
+   "criterion_id": "c06",
+   "expected": 4,
+   "got": 10,
+   "uncertain": true
+  },
+  {
+   "conversation_id": "p1-kz-005",
+   "criterion_id": "c02",
+   "expected": "na",
+   "got": "no",
+   "uncertain": true
+  },
+  {
+   "conversation_id": "p1-kz-012",
+   "criterion_id": "c02",
+   "expected": "yes",
+   "got": "no",
+   "uncertain": true
+  },
+  {
+   "conversation_id": "p1-en-002",
+   "criterion_id": "c07",
+   "expected": "no",
+   "got": "yes",
+   "uncertain": true
+  },
+  {
+   "conversation_id": "p1-en-007",
+   "criterion_id": "c05",
+   "expected": "yes",
+   "got": "no",
+   "uncertain": true
+  },
+  {
+   "conversation_id": "p1-en-007",
+   "criterion_id": "c06",
+   "expected": 10,
+   "got": 7,
+   "uncertain": true
+  },
+  {
+   "conversation_id": "p1-en-007",
+   "criterion_id": "c07",
+   "expected": "no",
+   "got": "yes",
+   "uncertain": true
+  },
+  {
+   "conversation_id": "p1-en-008",
+   "criterion_id": "c04",
+   "expected": 15,
+   "got": 10,
+   "uncertain": true
+  },
+  {
+   "conversation_id": "p1-en-008",
+   "criterion_id": "c06",
+   "expected": 7,
+   "got": 10,
+   "uncertain": true
+  },
+  {
+   "conversation_id": "p1-en-014",
+   "criterion_id": "c04",
+   "expected": 5,
+   "got": 10,
+   "uncertain": true
+  }
+ ]
+}

@@ -27,7 +27,8 @@ class Settings:
     org_api_url: str
     db_path: Path
     reasoning_effort: str      # low | medium | high | xhigh | max (gpt-6.1-sol не поддерживает temperature)
-    llm_concurrency: int       # одновременных запросов к OpenAI при пакетной оценке
+    llm_concurrency: int       # одновременных диалогов при пакетной оценке
+    self_consistency: int      # прогонов модели на один диалог (голосование большинством)
     price_input_per_1m: float  # $ за 1 млн входных токенов
     price_cached_per_1m: float
     price_output_per_1m: float
@@ -45,6 +46,7 @@ def get_settings() -> Settings:
         db_path=_path(os.getenv("DB_PATH", "cqa.db").strip() or "cqa.db"),
         reasoning_effort=os.getenv("OPENAI_REASONING_EFFORT", "medium").strip() or "medium",
         llm_concurrency=int(os.getenv("LLM_CONCURRENCY", "6") or 6),
+        self_consistency=int(os.getenv("SELF_CONSISTENCY", "3") or 3),
         price_input_per_1m=float(os.getenv("OPENAI_PRICE_INPUT_PER_1M", "2.0") or 2.0),
         price_cached_per_1m=float(os.getenv("OPENAI_PRICE_CACHED_PER_1M", "0.10") or 0.10),
         price_output_per_1m=float(os.getenv("OPENAI_PRICE_OUTPUT_PER_1M", "10.0") or 10.0),

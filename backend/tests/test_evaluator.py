@@ -171,3 +171,29 @@ def test_guidance_survives_ui_edit_without_field(client):
     v2 = {c["id"]: c for c in client.put("/api/checklists/default", json=cl).json()["criteria"]}
     assert v2["c01"]["guidance"]                    # не менялся — правила перенесены
     assert "guidance" not in v2["c05"]              # изменён — старые правила не тянем
+
+
+# --- self-consistency ---------------------------------------------------------------------------------
+def test_vote_majority_median_and_low_confidence(default_checklist):
+    a, b, c = llm_answer(), llm_answer(c04={"answer": "10"}, c05={"answer": "yes", "explanation": "B"}), \
+        llm_answer(c04={"answer": "20"}, c05={"answer": "yes", "explanation": "C"})
+    merged, votes = evaluator.vote(default_checklist, [a, b, c])
+    assert votes["c04"] == [0, 10, 20]
+    assert merged["criteria"]["c04"]["answer"] == "10" and merged["criteria"]["c04"]["confidence"] == "low"
+    assert merged["criteria"]["c05"]["answer"] == "yes" and merged["criteria"]["c05"]["explanation"] == "B"
+    assert merged["criteria"]["c05"]["confidence"] == "high"
+    assert merged["criteria"]["c01"]["answer"] == "yes"
+
+
+def test_evaluate_with_samples_sums_usage_and_reports_votes(client, monkeypatch):
+    payloads = iter([llm_answer(), llm_answer(c05={"answer": "yes"}), llm_answer()])
+
+    def fake(messages, schema, name="evaluation", reasoning_effort=None):
+        return copy.deepcopy(next(payloads)), {"input_tokens": 1000, "cached_tokens": 0, "output_tokens": 100,
+                                               "reasoning_tokens": 0, "cost_usd": 0.01, "duration_ms": 5}
+    monkeypatch.setattr(evaluator, "complete_json", fake)
+    ev = evaluator.evaluate("p1-ru-022", samples=3)
+    c05 = next(c for c in ev["criteria"] if c["criterion_id"] == "c05")
+    assert c05["answer"] == "no" and sorted(c05["votes"]) == ["no", "no", "yes"] and c05["agreement"] == 0.67
+    assert ev["usage"]["cost_usd"] == 0.03 and ev["usage"]["input_tokens"] == 3000
+    assert ev["model"]["samples"] == 3

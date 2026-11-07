@@ -3,7 +3,7 @@
 Из корня репозитория:
   python eval/accuracy.py                 # метрика по последним сохранённым оценкам
   python eval/accuracy.py --run           # сначала заново оценить все размеченные диалоги (тратит API)
-  python eval/accuracy.py --run --only p1-ru-014,p1-kz-008 --effort high
+  python eval/accuracy.py --run --only p1-ru-014,p1-kz-008 --effort high --samples 3
   python eval/accuracy.py --out eval/reports/run.json
 """
 from __future__ import annotations
@@ -24,10 +24,10 @@ from backend.app.services import accuracy  # noqa: E402
 from backend.app.services.evaluator import EvaluationError, evaluate  # noqa: E402
 
 
-def run_evaluations(ids: list[str], effort: str | None) -> dict[str, dict]:
+def run_evaluations(ids: list[str], effort: str | None, samples: int | None) -> dict[str, dict]:
     def one(cid):
         try:
-            return cid, evaluate(cid, reasoning_effort=effort)
+            return cid, evaluate(cid, reasoning_effort=effort, samples=samples)
         except EvaluationError as e:
             print(f"  ! {cid}: {e}", file=sys.stderr)
             return cid, None
@@ -49,6 +49,7 @@ def main():
     ap.add_argument("--run", action="store_true", help="заново оценить размеченные диалоги")
     ap.add_argument("--only", default="", help="через запятую: какие диалоги оценивать")
     ap.add_argument("--effort", default=None, help="reasoning effort: low|medium|high|xhigh")
+    ap.add_argument("--samples", type=int, default=None, help="прогонов на диалог (голосование)")
     ap.add_argument("--out", default="", help="сохранить отчёт JSON")
     args = ap.parse_args()
 
@@ -60,7 +61,7 @@ def main():
 
     evaluations = None
     if args.run:
-        fresh = run_evaluations(ids, args.effort)
+        fresh = run_evaluations(ids, args.effort, args.samples)
         evaluations = accuracy.latest_evaluations(list(gt["labels"]), gt["checklist_id"], gt.get("checklist_version"))
         evaluations.update(fresh)
     report = accuracy.compute(args.group, evaluations)
