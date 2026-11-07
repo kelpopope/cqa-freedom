@@ -41,6 +41,7 @@ def llm_answer(**overrides):
 @pytest.fixture
 def client(monkeypatch, tmp_path):
     monkeypatch.setenv("DB_PATH", str(tmp_path / "test.db"))
+    monkeypatch.setenv("SELF_CONSISTENCY", "1")   # голосование проверяется отдельным тестом с samples=3
     monkeypatch.setattr("backend.app.routers.conversations.fetch_dataset", lambda g: ([RECORD], "api"))
     with TestClient(app) as c:
         c.post("/api/datasets/import", json={"group_id": "DEV"})
