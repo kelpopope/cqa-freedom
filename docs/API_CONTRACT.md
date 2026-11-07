@@ -77,7 +77,11 @@
   "conversation_id": "p1-ru-022",
   "checklist_id": "default", "checklist_version": 1,
   "status": "done",                    // "queued" | "running" | "done" | "error"
-  "model": { "provider": "openai", "name": "gpt-6.1-sol" },
+  "model": { "provider": "openai", "name": "gpt-6.1-sol", "temperature": 0, "seed": 42, "prompt_version": "v3" },
+  "reproducibility": {                 // заполняется после повторной оценки того же диалога тем же чек-листом и prompt_version
+    "runs": 2, "agreement": 1.0,       // доля критериев с одинаковым ответом
+    "differing_criteria": []
+  },
   "usage": { "input_tokens": 3100, "output_tokens": 900, "cost_usd": 0.0012, "duration_ms": 4200 },
   "created_at": "2026-11-07T18:00:00+05:00",
   "criteria": [
@@ -93,6 +97,7 @@
       "na_reason": null,               // для N/A: какое условие выполнено
       "evidence_valid": true,          // бэк проверил: индекс есть и цитата найдена в реплике
       "confidence": "high",            // "high" | "low"
+      "uncertainty_reason": null,      // при "low": почему нет уверенности, напр. «в транскрипте нет ответа на второй вопрос клиента — возможно, обрыв записи»; модель НЕ выдумывает доказательство
       "source": "llm"                  // "llm" | "rules" | "llm+rules"
     }
   ],
@@ -151,6 +156,7 @@
 | PUT | `/api/checklists/{id}` | Checklist | Checklist (version+1) |
 | POST | `/api/checklists/{id}/activate` | `{"version": 2}` | Checklist |
 | POST | `/api/evaluate` | `{"conversation_id","checklist_id","version"?}` | Evaluation (синхронно) |
+| POST | `/api/evaluate/repeat` | `{"evaluation_id"}` | Evaluation с заполненным `reproducibility` (повторный прогон и сравнение) |
 | POST | `/api/evaluate/batch` | `{"group_id"?, "conversation_ids"?, "checklist_id", "version"?}` | `{"job_id"}` |
 | GET | `/api/jobs/{job_id}` | — | `{"job_id","total","done","failed","status"}` |
 | GET | `/api/evaluations/compare` | `?checklist_id=&from_version=&to_version=&group_id=` | `[{"conversation_id","from_total","to_total","changed_criteria":[...]}]` |
