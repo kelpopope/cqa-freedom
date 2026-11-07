@@ -14,6 +14,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import db
 from .config import FRONTEND_DIR, get_settings
+from .routers import checklists, conversations
 
 
 @asynccontextmanager
@@ -45,6 +46,10 @@ async def validation_error(_: Request, exc: RequestValidationError):
 def health():
     s = get_settings()
     return {"ok": True, "llm": {"provider": "openai", "name": s.openai_model, "mode": s.llm_mode}}
+
+
+app.include_router(conversations.router)
+app.include_router(checklists.router)
 
 
 # --- Фронт (монтируется последним, чтобы не перекрывать /api) ----------------------------------
