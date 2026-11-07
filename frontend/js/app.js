@@ -30,7 +30,8 @@ const ROUTES = [
   { re: /^#\/checklist\/?$/, key: 'checklist', view: checklist },
 ];
 
-const LOGO = `<svg width="30" height="34" viewBox="0 0 22 26" aria-hidden="true"><path d="M0 0h22v14c0 6-5 10-11 12C5 24 0 20 0 14z" fill="#4DB560"/><path d="M11 0h11v14c0 6-5 10-11 12z" fill="#1D5A3A"/></svg>`;
+// Официальный логотип Freedom Broker: знак-щит + словесный знак (тёмный для светлой темы, светлый для тёмной).
+const LOGO = `<img class="cqa-logo__mark" src="assets/freedom-mark.png" alt="" width="30" height="34"><div class="cqa-logo__words"><img class="cqa-logo__word cqa-logo__word--ink" src="assets/freedom-word.png" alt="Freedom Broker" height="26"><img class="cqa-logo__word cqa-logo__word--light" src="assets/freedom-word-light.png" alt="" height="26"></div>`;
 
 function defaultRoute() { return store.get().role === 'manager' ? '#/overview' : '#/dialogs'; }
 
@@ -42,7 +43,7 @@ function shell() {
   root.innerHTML = `
     <div class="cqa-shell">
       <aside class="cqa-side" id="cqa-side" aria-label="Главное меню">
-        <a class="cqa-logo" href="${defaultRoute()}" aria-label="Freedom Broker, контроль качества">${LOGO}<div><b>FREEDOM</b><small>BROKER</small></div></a>
+        <a class="cqa-logo" href="${defaultRoute()}" aria-label="Freedom Broker, контроль качества">${LOGO}</a>
         <div class="cqa-logo__sub">Контроль качества</div>
         <nav class="cqa-menu" id="cqa-menu">
           ${NAV.filter((n) => n.roles.includes(s.role)).map((n) => `<a href="${n.href}" data-nav="${n.key}" title="${n.label}">${icon(n.icon)}<span>${n.label}</span>${n.pill ? '<span class="cqa-pill" id="cqa-pill-appeals" hidden></span>' : ''}</a>`).join('')}
@@ -69,7 +70,7 @@ function shell() {
       <div class="cqa-app">
         <header class="cqa-mtop">
           <button type="button" class="cqa-btn cqa-btn--ghost cqa-btn--icon" id="cqa-burger" aria-label="Меню">${icon('menu')}</button>
-          <a class="cqa-logo" href="${defaultRoute()}">${LOGO}<div><b>FREEDOM</b><small>BROKER</small></div></a>
+          <a class="cqa-logo" href="${defaultRoute()}" aria-label="Freedom Broker">${LOGO}</a>
           <div class="cqa-mtop__right"><button type="button" class="cqa-btn cqa-btn--ghost cqa-btn--icon" data-cmd aria-label="Поиск">${icon('search')}</button></div>
         </header>
         <main class="cqa-main" id="cqa-main" tabindex="-1"></main>

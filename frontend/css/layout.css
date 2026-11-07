@@ -7,10 +7,13 @@
   background: var(--cqa-surface); border-right: 1px solid var(--cqa-line);
 }
 .cqa-logo { display: flex; align-items: center; gap: 10px; padding: 0 10px; line-height: 1; }
-.cqa-logo svg { flex: none; }
-.cqa-logo b { display: block; font-size: 17px; font-weight: 700; letter-spacing: 0.02em; }
-.cqa-logo small { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em; margin-top: 3px; }
-.cqa-logo__sub { padding: 8px 10px 0 50px; font-size: var(--cqa-fs-xs); color: var(--cqa-text-3); }
+.cqa-logo__mark { display: block; width: 32px; height: auto; flex: none; }
+.cqa-logo__words { display: block; }
+.cqa-logo__word { display: block; height: 32px; width: auto; }
+.cqa-logo__word--light { display: none; }
+.cqa-root[data-theme="dark"] .cqa-logo__word--ink { display: none; }
+.cqa-root[data-theme="dark"] .cqa-logo__word--light { display: block; }
+.cqa-logo__sub { padding: 10px 10px 0 50px; font-size: var(--cqa-fs-xs); color: var(--cqa-text-3); }
 
 .cqa-menu { margin-top: 26px; display: flex; flex-direction: column; gap: 4px; }
 .cqa-menu a {
