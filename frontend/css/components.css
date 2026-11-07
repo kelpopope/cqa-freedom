@@ -1,0 +1,137 @@
+/* Переиспользуемые компоненты */
+
+/* Кнопки */
+.cqa-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 32px; padding: 0 12px; border-radius: var(--cqa-r);
+  border: 1px solid var(--cqa-border-strong); background: var(--cqa-surface);
+  font-size: var(--cqa-fs); font-weight: 500; cursor: pointer; white-space: nowrap;
+  transition: background var(--cqa-fast), border-color var(--cqa-fast), transform var(--cqa-fast);
+}
+.cqa-btn:hover { background: var(--cqa-surface-2); }
+.cqa-btn:active { transform: translateY(1px); }
+.cqa-btn[disabled] { opacity: 0.55; cursor: progress; }
+.cqa-btn--primary { background: var(--cqa-brand-strong); border-color: var(--cqa-brand-strong); color: var(--cqa-text-inverse); }
+.cqa-btn--primary:hover { background: var(--cqa-brand-text); border-color: var(--cqa-brand-text); }
+.cqa-root[data-theme="dark"] .cqa-btn--primary { color: #04130b; }
+.cqa-root[data-theme="dark"] .cqa-btn--primary:hover { background: var(--cqa-brand-bright); border-color: var(--cqa-brand-bright); }
+.cqa-btn--ghost { border-color: transparent; background: transparent; }
+.cqa-btn--ghost:hover { background: var(--cqa-hover); }
+.cqa-btn--danger { color: var(--cqa-bad); }
+.cqa-btn--sm { height: 26px; padding: 0 8px; font-size: var(--cqa-fs-sm); border-radius: var(--cqa-r-sm); }
+.cqa-btn--icon { width: 32px; padding: 0; }
+.cqa-btn--icon.cqa-btn--sm { width: 26px; }
+.cqa-btn svg { width: 16px; height: 16px; flex: none; }
+.cqa-btn--sm svg { width: 14px; height: 14px; }
+
+/* Иконки */
+.cqa-ico { width: 16px; height: 16px; flex: none; display: inline-block; vertical-align: -3px; }
+.cqa-ico--sm { width: 14px; height: 14px; vertical-align: -2px; }
+
+/* Чипы-ответы: Да / Нет / N/A / шкала */
+.cqa-chip {
+  display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px;
+  border-radius: var(--cqa-r-pill); font-size: var(--cqa-fs-sm); font-weight: 500; white-space: nowrap;
+}
+.cqa-chip--yes { background: var(--cqa-ok-soft); color: var(--cqa-ok); }
+.cqa-chip--no { background: var(--cqa-bad-soft); color: var(--cqa-bad); }
+.cqa-chip--na { background: var(--cqa-na-soft); color: var(--cqa-na); }
+.cqa-chip--mid { background: var(--cqa-warn-soft); color: var(--cqa-warn); }
+.cqa-chip--info { background: var(--cqa-info-soft); color: var(--cqa-info); }
+
+/* Бейджи (мета-информация) */
+.cqa-badge {
+  display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 6px;
+  border-radius: var(--cqa-r-sm); font-size: var(--cqa-fs-xs); font-weight: 500;
+  background: var(--cqa-surface-2); color: var(--cqa-text-2); white-space: nowrap;
+}
+.cqa-badge--danger { background: var(--cqa-bad-soft); color: var(--cqa-bad); }
+.cqa-badge--warn { background: var(--cqa-warn-soft); color: var(--cqa-warn); }
+.cqa-badge--ok { background: var(--cqa-ok-soft); color: var(--cqa-ok); }
+.cqa-badge--info { background: var(--cqa-info-soft); color: var(--cqa-info); }
+.cqa-badge--outline { background: transparent; border: 1px solid var(--cqa-border-strong); }
+
+/* Сегментированный переключатель */
+.cqa-seg { display: inline-flex; padding: 2px; border-radius: var(--cqa-r); background: var(--cqa-surface-2); border: 1px solid var(--cqa-border); }
+.cqa-seg button {
+  height: 26px; padding: 0 10px; border: 0; border-radius: var(--cqa-r-sm); background: transparent;
+  font-size: var(--cqa-fs-sm); font-weight: 500; color: var(--cqa-text-2); cursor: pointer;
+  transition: background var(--cqa-fast), color var(--cqa-fast);
+}
+.cqa-seg button:hover { color: var(--cqa-text); }
+.cqa-seg button[aria-pressed="true"] { background: var(--cqa-surface); color: var(--cqa-text); box-shadow: var(--cqa-shadow-1); }
+
+/* Поля ввода */
+.cqa-input, .cqa-select, .cqa-textarea {
+  height: 32px; padding: 0 10px; border-radius: var(--cqa-r); border: 1px solid var(--cqa-border-strong);
+  background: var(--cqa-surface); font-size: var(--cqa-fs); transition: border-color var(--cqa-fast), box-shadow var(--cqa-fast);
+}
+.cqa-textarea { height: auto; min-height: 80px; padding: 8px 10px; resize: vertical; line-height: 1.5; width: 100%; }
+.cqa-input:focus, .cqa-select:focus, .cqa-textarea:focus { outline: none; border-color: var(--cqa-brand); box-shadow: var(--cqa-focus); }
+.cqa-input::placeholder, .cqa-textarea::placeholder { color: var(--cqa-text-3); }
+.cqa-search { position: relative; display: inline-flex; align-items: center; }
+.cqa-search .cqa-ico { position: absolute; left: 9px; color: var(--cqa-text-3); pointer-events: none; }
+.cqa-search .cqa-input { padding-left: 30px; width: 240px; }
+
+/* Фильтр-чипы */
+.cqa-fchip {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px;
+  border-radius: var(--cqa-r-pill); border: 1px solid var(--cqa-border-strong); background: var(--cqa-surface);
+  font-size: var(--cqa-fs-sm); font-weight: 500; color: var(--cqa-text-2); cursor: pointer;
+  transition: color var(--cqa-fast), background var(--cqa-fast), border-color var(--cqa-fast);
+}
+.cqa-fchip:hover { color: var(--cqa-text); border-color: var(--cqa-text-3); }
+.cqa-fchip[aria-pressed="true"] { background: var(--cqa-text); border-color: var(--cqa-text); color: var(--cqa-surface); }
+.cqa-fchip--danger[aria-pressed="true"] { background: var(--cqa-bad); border-color: var(--cqa-bad); color: #fff; }
+.cqa-fchip .cqa-count { font-size: var(--cqa-fs-xs); opacity: 0.75; }
+
+/* Карточки */
+.cqa-card { background: var(--cqa-surface); border: 1px solid var(--cqa-border); border-radius: var(--cqa-r-lg); }
+
+/* Клавиши */
+.cqa-kbd {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 4px;
+  border-radius: 4px; border: 1px solid var(--cqa-border-strong); border-bottom-width: 2px;
+  font-family: var(--cqa-mono); font-size: 10px; color: var(--cqa-text-2); background: var(--cqa-surface);
+}
+
+/* Подсказка */
+.cqa-tip { position: relative; }
+.cqa-tip__body {
+  position: absolute; z-index: 30; bottom: calc(100% + 8px); right: 0; width: max-content; max-width: 280px;
+  padding: 8px 10px; border-radius: var(--cqa-r); background: #121519; color: #f2f4f6;
+  font-size: var(--cqa-fs-sm); font-weight: 400; line-height: 1.45; box-shadow: var(--cqa-shadow-pop);
+  opacity: 0; transform: translateY(4px); pointer-events: none; transition: opacity var(--cqa-fast), transform var(--cqa-fast);
+}
+.cqa-tip:hover .cqa-tip__body, .cqa-tip:focus-within .cqa-tip__body { opacity: 1; transform: none; }
+.cqa-root[data-theme="dark"] .cqa-tip__body { background: #eef1f3; color: #121519; }
+
+/* Скелетоны */
+.cqa-skel { border-radius: var(--cqa-r-sm); background: var(--cqa-surface-2); }
+
+/* Тосты */
+.cqa-toasts { position: fixed; z-index: 100; right: 20px; bottom: 20px; display: flex; flex-direction: column; gap: 8px; }
+.cqa-toast {
+  display: flex; align-items: center; gap: 10px; min-width: 260px; max-width: 420px; padding: 10px 14px;
+  border-radius: var(--cqa-r); background: #121519; color: #f2f4f6; box-shadow: var(--cqa-shadow-pop);
+  font-size: var(--cqa-fs); animation: cqa-toast-in var(--cqa-base) var(--cqa-ease);
+}
+.cqa-toast--ok .cqa-ico { color: var(--cqa-brand-bright); }
+.cqa-toast--bad .cqa-ico { color: #ff8a7f; }
+@keyframes cqa-toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* Индикатор балла */
+.cqa-score { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.cqa-score__bar { width: 56px; height: 6px; border-radius: 6px; background: var(--cqa-surface-3); overflow: hidden; }
+.cqa-score__fill { display: block; height: 100%; border-radius: 6px; background: var(--cqa-ok); transition: width var(--cqa-base) var(--cqa-ease); }
+.cqa-score--mid .cqa-score__fill { background: #e8a33a; }
+.cqa-score--low .cqa-score__fill { background: var(--cqa-bad); }
+.cqa-score--low { color: var(--cqa-bad); }
+
+/* Спиннер */
+.cqa-spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: cqa-rot 0.7s linear infinite; display: inline-block; }
+@keyframes cqa-rot { to { transform: rotate(360deg); } }
+
+/* Пустое состояние */
+.cqa-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 48px 24px; text-align: center; color: var(--cqa-text-2); }
+.cqa-empty__icon { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--cqa-surface-2); color: var(--cqa-text-3); }

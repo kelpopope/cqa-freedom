@@ -25,6 +25,13 @@ uvicorn backend.app.main:app --reload
 ```
 Открыть http://localhost:8000
 
+### Только интерфейс, без сервера (демо-данные)
+```bash
+python -m http.server 5173
+```
+Открыть http://localhost:5173/frontend/index.html — интерфейс работает на встроенных демо-диалогах.
+Переключатели режима: `?mock=1` — демо-данные, `?live=1` — сервер (`/api`).
+
 ## Структура
 - `backend/` — FastAPI, оценка, расчёт баллов, апелляции.
 - `frontend/` — интерфейс на HTML/CSS/JS (встраиваемый компонент).

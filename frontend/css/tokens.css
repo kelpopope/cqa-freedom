@@ -1,0 +1,111 @@
+/* Дизайн-токены CQA. Всё визуальное — только через эти переменные. */
+.cqa-root {
+  --cqa-font: "Inter", "Segoe UI", system-ui, -apple-system, "Roboto", "Helvetica Neue", Arial, sans-serif;
+  --cqa-mono: "JetBrains Mono", "Cascadia Mono", "Consolas", ui-monospace, monospace;
+
+  /* поверхности */
+  --cqa-bg: #f5f6f8;
+  --cqa-surface: #ffffff;
+  --cqa-surface-2: #f2f4f6;
+  --cqa-surface-3: #e9ecef;
+  --cqa-hover: rgba(17, 20, 24, 0.04);
+  --cqa-selected: rgba(0, 166, 90, 0.08);
+
+  /* линии */
+  --cqa-border: rgba(18, 21, 25, 0.09);
+  --cqa-border-strong: rgba(18, 21, 25, 0.16);
+
+  /* текст */
+  --cqa-text: #121519;
+  --cqa-text-2: #4a535e;
+  --cqa-text-3: #87909b;
+  --cqa-text-inverse: #ffffff;
+
+  /* бренд Freedom */
+  --cqa-brand: #00a65a;
+  --cqa-brand-strong: #00874a;
+  --cqa-brand-bright: #00c46a;
+  --cqa-brand-soft: #e6f7ee;
+  --cqa-brand-text: #00703d;
+
+  /* статусы */
+  --cqa-ok: #00874a;
+  --cqa-ok-soft: #e6f7ee;
+  --cqa-bad: #d92d20;
+  --cqa-bad-strong: #b42318;
+  --cqa-bad-soft: #fef1f0;
+  --cqa-warn: #b54708;
+  --cqa-warn-soft: #fff6e5;
+  --cqa-warn-line: #f5c26b;
+  --cqa-na: #6b7480;
+  --cqa-na-soft: #eef0f2;
+  --cqa-info: #175cd3;
+  --cqa-info-soft: #eef4ff;
+
+  /* подсветка реплики */
+  --cqa-flash: rgba(0, 196, 106, 0.18);
+  --cqa-link-hover: rgba(23, 92, 211, 0.08);
+
+  /* геометрия */
+  --cqa-r-sm: 6px;
+  --cqa-r: 8px;
+  --cqa-r-lg: 12px;
+  --cqa-r-pill: 999px;
+  --cqa-shadow-1: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --cqa-shadow-2: 0 4px 16px rgba(16, 24, 40, 0.08), 0 1px 3px rgba(16, 24, 40, 0.06);
+  --cqa-shadow-pop: 0 12px 32px rgba(16, 24, 40, 0.14), 0 2px 6px rgba(16, 24, 40, 0.08);
+  --cqa-focus: 0 0 0 3px rgba(0, 166, 90, 0.28);
+
+  /* типографика */
+  --cqa-fs-xs: 11px;
+  --cqa-fs-sm: 12px;
+  --cqa-fs: 13px;
+  --cqa-fs-md: 14px;
+  --cqa-fs-lg: 16px;
+  --cqa-fs-xl: 20px;
+  --cqa-fs-xxl: 32px;
+
+  /* движение */
+  --cqa-fast: 120ms;
+  --cqa-base: 200ms;
+  --cqa-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* размеры */
+  --cqa-header-h: 56px;
+}
+
+.cqa-root[data-theme="dark"] {
+  --cqa-bg: #0e1113;
+  --cqa-surface: #161a1d;
+  --cqa-surface-2: #1d2225;
+  --cqa-surface-3: #262c30;
+  --cqa-hover: rgba(255, 255, 255, 0.05);
+  --cqa-selected: rgba(0, 196, 106, 0.12);
+  --cqa-border: #2a3035;
+  --cqa-border-strong: #3a4248;
+  --cqa-text: #eef1f3;
+  --cqa-text-2: #b3bcc4;
+  --cqa-text-3: #7d8790;
+  --cqa-brand: #00c46a;
+  --cqa-brand-strong: #00c46a;
+  --cqa-brand-bright: #2bdc86;
+  --cqa-brand-soft: rgba(0, 196, 106, 0.14);
+  --cqa-brand-text: #4fe39a;
+  --cqa-ok: #3ad08a;
+  --cqa-ok-soft: rgba(58, 208, 138, 0.14);
+  --cqa-bad: #ff6b5e;
+  --cqa-bad-strong: #ff8a7f;
+  --cqa-bad-soft: rgba(255, 107, 94, 0.14);
+  --cqa-warn: #f5b04a;
+  --cqa-warn-soft: rgba(245, 176, 74, 0.14);
+  --cqa-warn-line: #8a6420;
+  --cqa-na: #9aa4ad;
+  --cqa-na-soft: rgba(154, 164, 173, 0.14);
+  --cqa-info: #78a9ff;
+  --cqa-info-soft: rgba(120, 169, 255, 0.14);
+  --cqa-flash: rgba(0, 196, 106, 0.22);
+  --cqa-link-hover: rgba(120, 169, 255, 0.12);
+  --cqa-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --cqa-shadow-2: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --cqa-shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.55);
+}
