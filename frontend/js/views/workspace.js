@@ -7,6 +7,7 @@ import { esc, fmt2, fmtDuration, fmtTimestamp, fmtMoney, CHANNEL, LANG, GROSS, a
 import { deriveTimeline, deriveBotContext, markHold, withOffsets } from '../derive.js';
 import { countUp, growBars, openModal, relTime } from '../ui.js';
 import { refreshShell } from '../app.js';
+import { openDataModal } from './data.js';
 
 const S = { main: null, list: [], id: null, data: null, active: null, player: null, keys: null, loadSeq: 0 };
 const pad2 = (n) => String(n).padStart(2, '0');
@@ -644,11 +645,9 @@ function headHtml() {
   return `<div class="cqa-page-head">
       <button type="button" class="cqa-btn cqa-btn--sm cqa-q-toggle" id="cqa-q-toggle" aria-label="Список диалогов" title="Список диалогов">${icon('menu', 'cqa-ico--sm')}<span>Диалоги</span></button>
       <h1>${title}</h1>
-      ${rl === 'qa' ? `<div class="cqa-page-head__actions">
-        <label class="cqa-label" for="cqa-group">Набор</label>
-        <input class="cqa-input cqa-input--sm" id="cqa-group" value="${esc(store.get().groupId)}" title="group_id набора у организаторов" style="width:96px" autocomplete="off">
-        <button type="button" class="cqa-btn cqa-btn--sm" id="cqa-import">${icon('download', 'cqa-ico--sm')}Загрузить</button>
-        <button type="button" class="cqa-btn cqa-btn--outline cqa-btn--sm" id="cqa-batch">${icon('sparkle', 'cqa-ico--sm')}Оценить все</button>
+      ${rl !== 'operator' ? `<div class="cqa-page-head__actions">
+        <button type="button" class="cqa-btn cqa-btn--sm" id="cqa-data" title="Открыть, загрузить или выгрузить набор">${icon('download', 'cqa-ico--sm')}Данные: <b>${esc(store.get().groupId)}</b></button>
+        ${rl === 'qa' ? `<button type="button" class="cqa-btn cqa-btn--outline cqa-btn--sm" id="cqa-batch">${icon('sparkle', 'cqa-ico--sm')}Оценить все</button>` : ''}
       </div>` : ''}
     </div>
     <div class="cqa-ws-tabs"><div class="cqa-seg" role="group" aria-label="Показать"><button type="button" data-wstab="chat" aria-pressed="true">Диалог</button><button type="button" data-wstab="eval" aria-pressed="false">Оценка</button></div></div>`;
@@ -658,13 +657,8 @@ function bindHead() {
   const m = S.main; const rootEl = document.querySelector('.cqa-root');
   m.querySelector('#cqa-q-toggle')?.addEventListener('click', (e) => { e.stopPropagation(); toggleQueue(); });
   m.querySelectorAll('[data-wstab]').forEach((b) => b.addEventListener('click', () => { rootEl.dataset.wsTab = b.dataset.wstab; }));
-  m.querySelector('#cqa-import')?.addEventListener('click', async (e) => {
-    const g = m.querySelector('#cqa-group').value.trim(); const b = e.currentTarget;
-    if (!g) { toast('Укажите group_id набора', 'bad'); return; }
-    b.disabled = true; b.innerHTML = '<span class="cqa-spin"></span>Загрузка';
-    try { const r = await api.importDataset(g); store.set({ groupId: g }); toast(r.note || `Загружено диалогов: ${r.imported}`); await reloadAll(); } catch (er) { toast(er.message, 'bad'); }
-    b.disabled = false; b.innerHTML = `${icon('download', 'cqa-ico--sm')}Загрузить`;
-  });
+  // Смена набора — страница собирается заново на первом диалоге нового набора
+  m.querySelector('#cqa-data')?.addEventListener('click', () => openDataModal({ onChange: async () => { const main = S.main; destroy(); history.replaceState(null, '', '#/dialogs'); await render(main, {}); } }));
   m.querySelector('#cqa-batch')?.addEventListener('click', async (e) => {
     const b = e.currentTarget; b.disabled = true;
     try {

@@ -104,3 +104,12 @@ def test_stats_overview(client):
     c07 = next(c for c in s["criteria"] if c["criterion_id"] == "c07")
     assert c07["failed"] == 1 and c07["na"] == 1 and c07["lost_points"] == 5
     assert all("lost_points" in c for c in s["criteria"]) and "c08" not in {c["criterion_id"] for c in s["criteria"]}
+
+
+def test_results_csv_for_evaluated_set(client):
+    csv = client.get("/api/results/export.csv", params={"group_id": "CTRL"})
+    assert csv.status_code == 200
+    rows = [r.split(";") for r in csv.text.lstrip("\ufeff").strip().splitlines()]
+    head = rows[0]; row = next(r for r in rows if r[0] == "p1-ru-022")
+    assert row[head.index("status")] == "оценён" and row[head.index("gross_error")] == "да"
+    assert row[head.index("gross_types")] == "private_service"

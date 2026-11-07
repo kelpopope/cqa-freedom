@@ -153,5 +153,10 @@ def list_items(group_id: str | None = None, language: str | None = None, channel
 
 def groups() -> list[dict[str, Any]]:
     with db.connect() as conn:
-        rows = conn.execute("SELECT group_id, COUNT(*) n FROM conversations GROUP BY group_id ORDER BY group_id")
-        return [{"group_id": r["group_id"], "count": r["n"]} for r in rows]
+        rows = conn.execute(
+            """SELECT c.group_id, COUNT(*) n,
+                      SUM(EXISTS(SELECT 1 FROM evaluations e WHERE e.conversation_id=c.conversation_id AND e.status='done')) ev,
+                      MAX(c.imported_at) imported_at
+               FROM conversations c GROUP BY c.group_id ORDER BY MAX(c.imported_at) DESC""")
+        return [{"group_id": r["group_id"], "count": r["n"], "evaluated": r["ev"] or 0, "imported_at": r["imported_at"]}
+                for r in rows]

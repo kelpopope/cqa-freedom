@@ -3,10 +3,12 @@ from __future__ import annotations
 from typing import Any, Optional
 
 from fastapi import APIRouter, Body, HTTPException
+from fastapi.responses import JSONResponse, Response
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 
 from ..services import conversations as store
+from ..services import datasets
 from ..services import sla
 from ..services.evaluator import history
 from ..services.fetcher import FetchError, fetch_dataset
@@ -32,6 +34,51 @@ async def import_dataset(req: ImportRequest):
 @router.get("/datasets")
 def list_datasets():
     return store.groups()
+
+
+class UploadRequest(BaseModel):
+    payload: Any
+    group_id: Optional[str] = None
+
+
+class FetchUrlRequest(BaseModel):
+    url: str
+    group_id: Optional[str] = None
+
+
+@router.post("/datasets/upload")
+def upload_dataset(req: UploadRequest):
+    """Набор из файла или вставленного JSON: формат API организаторов, {records}, массив или один диалог."""
+    try:
+        return datasets.import_payload(req.payload, req.group_id)
+    except FetchError as e:
+        raise HTTPException(422, str(e))
+
+
+@router.post("/datasets/fetch-url")
+async def fetch_url_dataset(req: FetchUrlRequest):
+    """Набор по любому адресу (свой API): GET, ответ JSON в тех же форматах."""
+    try:
+        payload = await run_in_threadpool(datasets.fetch_url, req.url)
+        return datasets.import_payload(payload, req.group_id)
+    except FetchError as e:
+        raise HTTPException(422, str(e))
+
+
+@router.get("/datasets/{group_id}/export")
+def export_dataset(group_id: str):
+    doc = datasets.export_dataset(group_id)
+    if not doc["data"]["records"]:
+        raise HTTPException(404, f"Нет диалогов набора {group_id}")
+    return JSONResponse(doc, headers={"Content-Disposition": f'attachment; filename="dataset_{group_id}.json"'})
+
+
+@router.get("/results/export.csv")
+def export_results_csv(group_id: str):
+    if not store.list_items(group_id=group_id):
+        raise HTTPException(404, f"Нет диалогов набора {group_id}")
+    return Response(datasets.results_csv(group_id), media_type="text/csv; charset=utf-8",
+                    headers={"Content-Disposition": f'attachment; filename="results_{group_id}.csv"'})
 
 
 @router.post("/conversations/upload")

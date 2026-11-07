@@ -51,7 +51,8 @@ def test_import_list_get(client, monkeypatch):
     # повторный импорт не дублирует
     client.post("/api/datasets/import", json={"group_id": "DEV"})
     assert len(client.get("/api/conversations").json()) == 3
-    assert client.get("/api/datasets").json() == [{"group_id": "DEV", "count": 3}]
+    ds = client.get("/api/datasets").json()
+    assert [(d["group_id"], d["count"], d["evaluated"]) for d in ds] == [("DEV", 3, 0)]
 
 
 def test_import_error_is_contract_shaped(client, monkeypatch):
