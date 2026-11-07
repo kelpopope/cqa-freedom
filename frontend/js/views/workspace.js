@@ -127,19 +127,37 @@ function markQueue() {
 }
 
 /* ---------- Переписка ---------- */
+// Навигатор по нарушениям: вместо мелкой временной шкалы — крупные кнопки «реплика → какие критерии нарушены»
+// и стрелки «предыдущее / следующее нарушение». Каждая кнопка ведёт к реплике в переписке.
 function mapHtml(conv, ev, meta) {
-  const tr = conv.transcript; const dur = Math.max(1, tr.at(-1)?.offset_sec || 1);
-  const bad = new Set(rowsOf(ev).filter((r) => { const c = meta.get(r.criterion_id); return c && (failed(c, r) || (c.type === 'flag' && r.answer === 'yes')); }).flatMap((r) => (r.evidence || []).map((e) => e.index)));
-  const segs = tr.map((m, i) => {
-    const next = tr[i + 1]?.offset_sec ?? dur;
-    const w = Math.max(1, next - m.offset_sec);
-    const cls = bad.has(m.index) ? 'bad' : m.on_hold ? 'hold' : m.speaker;
-    return `<span class="cqa-map__seg cqa-map__seg--${cls}" style="flex:${w} 1 0" data-goto="${m.index}" title="#${turnNo(m.index)} ${esc((m.text || '').slice(0, 60))}"></span>`;
-  }).join('');
-  const nBad = bad.size;
-  return `<div class="cqa-map" aria-label="Карта разговора">
-    <div class="cqa-map__track">${segs}</div>
+  const byTurn = new Map();
+  rowsOf(ev).forEach((r) => {
+    const c = meta.get(r.criterion_id);
+    if (!c || !(failed(c, r) || (c.type === 'flag' && r.answer === 'yes'))) return;
+    (r.evidence || []).forEach((e) => {
+      if (!byTurn.has(e.index)) byTurn.set(e.index, []);
+      const name = c.type === 'flag' ? 'Грубое нарушение' : SHORT(c);
+      if (!byTurn.get(e.index).includes(name)) byTurn.get(e.index).push(name);
+    });
+  });
+  const turns = [...byTurn.keys()].sort((a, b) => a - b);
+  S.navTurns = turns; S.navLabels = turns.map((i) => byTurn.get(i).join(', ')); S.navPos = 0;
+  if (!turns.length) return `<div class="cqa-nav cqa-nav--ok">${icon('check', 'cqa-ico--sm')}<span>Нарушений в репликах нет</span></div>`;
+  return `<div class="cqa-nav" aria-label="Реплики с нарушениями">
+    <span class="cqa-nav__label">${icon('alert', 'cqa-ico--sm')}<span id="cqa-nav-pos">${turns.length > 1 ? `1 из ${turns.length}` : 'Нарушение'}</span></span>
+    <button type="button" class="cqa-nav__chip" id="cqa-nav-chip" data-nav="0" title="Перейти к реплике"><b>#${turnNo(turns[0])}</b><span>${esc(S.navLabels[0])}</span></button>
+    ${turns.length > 1 ? `<div class="cqa-nav__step"><button type="button" class="cqa-btn cqa-btn--icon cqa-btn--sm" data-step="-1" aria-label="Предыдущее нарушение">${icon('up', 'cqa-ico--sm')}</button><button type="button" class="cqa-btn cqa-btn--icon cqa-btn--sm" data-step="1" aria-label="Следующее нарушение">${icon('down', 'cqa-ico--sm')}</button></div>` : ''}
   </div>`;
+}
+
+// Шаг по нарушениям: обновляет счётчик и кнопку, прокручивает переписку к реплике.
+function navTo(pos) {
+  const t = S.navTurns || []; if (!t.length) return;
+  S.navPos = (pos + t.length) % t.length;
+  const chip = S.main.querySelector('#cqa-nav-chip');
+  if (chip) { chip.dataset.nav = S.navPos; chip.innerHTML = `<b>#${turnNo(t[S.navPos])}</b><span>${esc(S.navLabels[S.navPos])}</span>`; }
+  const lbl = S.main.querySelector('#cqa-nav-pos'); if (lbl && t.length > 1) lbl.textContent = `${S.navPos + 1} из ${t.length}`;
+  scrollToMsg(t[S.navPos]);
 }
 
 function msgHtml(m, conv, tags, isCall, hit) {
@@ -401,6 +419,8 @@ function bindColumns() {
   const ws = S.main.querySelector('.cqa-ws');
   ws.onclick = async (e) => {
     const t = e.target;
+    const st = t.closest('[data-step]'); if (st) { navTo((S.navPos ?? 0) + Number(st.dataset.step)); return; }
+    const nv = t.closest('[data-nav]'); if (nv) { navTo(Number(nv.dataset.nav)); return; }
     const go = t.closest('[data-goto]'); if (go) { scrollToMsg(Number(go.dataset.goto)); return; }
     const co = t.closest('[data-crit-open]'); if (co) { openCrit(co.dataset.critOpen); return; }
     const rg = t.closest('[data-range]');
