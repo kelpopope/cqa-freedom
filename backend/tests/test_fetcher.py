@@ -74,11 +74,11 @@ def test_fetch_appends_group_id_without_dropping_signature(monkeypatch, tmp_path
         seen["url"] = url
         return httpx.Response(200, json={"isSuccess": True, "error": "", "data": {"records": [{"conversation_id": "a"}]}})
 
-    monkeypatch.setenv("ORG_API_URL", "https://example.test/run?api-version=1&sig=SECRET")
+    monkeypatch.setenv("ORG_API_URL", "https://example.test/run?api-version=1&code=SECRET")
     monkeypatch.setattr(fetcher, "RAW_DIR", tmp_path)
     monkeypatch.setattr(fetcher.httpx, "get", fake_get)
     records, source = fetcher.fetch_dataset("CTRL 1")
-    assert seen["url"] == "https://example.test/run?api-version=1&sig=SECRET&group_id=CTRL%201"
+    assert seen["url"] == "https://example.test/run?api-version=1&code=SECRET&group_id=CTRL%201"
     assert records == [{"conversation_id": "a"}] and source == "api"
     assert (tmp_path / "CTRL_1.json").exists()
 
@@ -89,7 +89,7 @@ def test_fetch_falls_back_to_cache(monkeypatch, tmp_path):
     def broken_get(url, timeout):
         raise httpx.ConnectError("down")
 
-    monkeypatch.setenv("ORG_API_URL", "https://example.test/run?sig=x")
+    monkeypatch.setenv("ORG_API_URL", "https://example.test/run?code=x")
     monkeypatch.setattr(fetcher, "RAW_DIR", tmp_path)
     monkeypatch.setattr(fetcher.httpx, "get", broken_get)
     assert fetcher.fetch_dataset("G") == ([{"conversation_id": "c"}], "cache")
