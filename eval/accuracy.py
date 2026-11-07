@@ -72,6 +72,7 @@ def main():
     print("По критериям:  " + "  ".join(f"{k}={v}" for k, v in report["per_criterion"].items()))
     print("Без спорных:   " + "  ".join(f"{k}={v}" for k, v in report["per_criterion_confident"].items()))
     print("По языкам:     " + "  ".join(f"{k}={v}" for k, v in report["per_language"].items()))
+    print("Доказательства:", report["evidence"])
     print("\nРасхождения (* — спорная ячейка эталона):")
     for m in sorted(report["mismatches"], key=lambda m: (m["criterion_id"], m["conversation_id"])):
         print(f"  {m['criterion_id']} {m['conversation_id']:<10} эталон={m['expected']!s:<4} система={m['got']!s:<4}"

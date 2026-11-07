@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-PROMPT_VERSION = "p3"
+PROMPT_VERSION = "p4.1"
 
 GENERAL_RULES = """Ты — эксперт отдела контроля качества брокера Freedom Broker. Ты оцениваешь работу ОПЕРАТОРА поддержки в одном диалоге по чек-листу.
 
@@ -33,11 +33,19 @@ GENERAL_RULES = """Ты — эксперт отдела контроля кач�
 
 Доказательства (evidence):
 - Указывай номера реальных реплик и короткую ДОСЛОВНУЮ цитату из текста этой реплики (5–15 слов, без изменений, на языке оригинала).
-- Для "yes" — реплика, где требование выполнено. Для "no" — реплика с ошибкой; если действие просто пропущено — в expected_range укажи диапазон реплик, где его ожидали, а в evidence — ближайшую реплику оператора. Для "na" — реплика или системное событие, подтверждающее условие N/A.
-- explanation — 1–2 предложения ПО-РУССКИ: что произошло и почему такой ответ, со ссылкой на номера реплик вида [#9]. Для N/A заполни na_reason: какое условие выполнено.
+- Ставь доказательство ровно на ту реплику, где произошло событие: для "yes" — где требование выполнено; для "no" — реплика оператора, в которой допущена ошибка; если действие просто пропущено — в expected_range диапазон реплик, где его ожидали, а в evidence — реплика оператора, после которой оно должно было прозвучать; для "na" — реплика или системное событие, подтверждающее условие N/A. Для шкалы ниже максимума — реплика, из-за которой снижена оценка.
+- explanation — 2–3 коротких предложения ПО-РУССКИ: (1) что сделал или не сделал оператор — со ссылкой [#9]; (2) почему это даёт именно такой ответ по правилу критерия; для шкалы — почему эта ступень, а не соседняя выше. Не пересказывай весь диалог, не придумывай того, чего нет в тексте. Для N/A заполни na_reason: какое условие выполнено.
 - confidence: "low", если диалог допускает разные трактовки, иначе "high".
 
 Дополнительно верни client_request: одно предложение по-русски — с чем пришёл клиент (с учётом сказанного боту)."""
+
+TURN_REVIEW_RULES = """
+Разбор по репликам (turn_review) — делай ПЕРЕД ответами по критериям:
+- Пройди по КАЖДОЙ реплике оператора из списка в конце диалога, по порядку.
+- note — одно короткое предложение по-русски: что оператор сделал в этой реплике по отношению к клиенту.
+- issues — критерии, которые нарушены именно в этой реплике (id критерия + короткая причина). Если реплика — место, где ожидалось пропущенное действие (не представился, не уточнил, не попрощался), тоже укажи здесь.
+- strengths — критерии, которые выполнены именно в этой реплике (только id).
+- Пустые списки, если реплика нейтральна. Ответы по критериям должны быть согласованы с разбором."""
 
 
 def _criterion_block(c: dict[str, Any]) -> str:
@@ -59,8 +67,8 @@ def _criterion_block(c: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def build_system_prompt(checklist: dict[str, Any]) -> str:
-    parts = [GENERAL_RULES, "", f"# Чек-лист «{checklist.get('name', '')}» (версия {checklist.get('version', '?')})"]
+def build_system_prompt(checklist: dict[str, Any], turn_review: bool = True) -> str:
+    parts = [GENERAL_RULES + (TURN_REVIEW_RULES if turn_review else ""), "", f"# Чек-лист «{checklist.get('name', '')}» (версия {checklist.get('version', '?')})"]
     sections = {s["id"]: s["title"] for s in checklist.get("sections") or []}
     current = object()
     for c in checklist["criteria"]:
@@ -88,15 +96,25 @@ def format_transcript(conversation: dict[str, Any]) -> str:
     return "\n".join(out)
 
 
-def build_user_prompt(conversation: dict[str, Any]) -> str:
+def operator_turns(conversation: dict[str, Any]) -> list[int]:
+    """Реплики оператора, которые разбираются по отдельности (без удержания и дублей)."""
+    return [t["index"] for t in conversation["transcript"]
+            if t["speaker"] == "operator" and not t.get("on_hold") and not t.get("duplicate")]
+
+
+def build_user_prompt(conversation: dict[str, Any], turn_review: bool = True) -> str:
+    tail = "Оцени оператора по каждому критерию чек-листа."
+    if turn_review:
+        ops = operator_turns(conversation)
+        tail = (f"Реплики оператора для разбора: {', '.join(f'[{i}]' for i in ops) or 'нет'}.\n"
+                "Сначала разбери их по порядку (turn_review), затем оцени оператора по каждому критерию чек-листа.")
     return (f"Диалог {conversation['conversation_id']} · канал: {conversation.get('channel')} · "
-            f"язык: {conversation.get('language')}\n\n{format_transcript(conversation)}\n\n"
-            "Оцени оператора по каждому критерию чек-листа.")
+            f"язык: {conversation.get('language')}\n\n{format_transcript(conversation)}\n\n{tail}")
 
 
-def build_prompt(checklist: dict[str, Any], conversation: dict[str, Any]) -> list[dict[str, str]]:
-    return [{"role": "system", "content": build_system_prompt(checklist)},
-            {"role": "user", "content": build_user_prompt(conversation)}]
+def build_prompt(checklist: dict[str, Any], conversation: dict[str, Any], turn_review: bool = True) -> list[dict[str, str]]:
+    return [{"role": "system", "content": build_system_prompt(checklist, turn_review)},
+            {"role": "user", "content": build_user_prompt(conversation, turn_review)}]
 
 
 # --- JSON-схема ответа (Structured Outputs, strict) ------------------------------------------------
@@ -132,13 +150,25 @@ def _criterion_schema(c: dict[str, Any]) -> dict[str, Any]:
     return {"type": "object", "additionalProperties": False, "required": list(props), "properties": props}
 
 
-def build_response_schema(checklist: dict[str, Any]) -> dict[str, Any]:
-    criteria = {c["id"]: _criterion_schema(c) for c in checklist["criteria"]}
-    return {
-        "type": "object", "additionalProperties": False, "required": ["client_request", "criteria"],
+def _turn_review_schema(checklist: dict[str, Any]) -> dict[str, Any]:
+    ids = {"type": "string", "enum": [c["id"] for c in checklist["criteria"]]}
+    return {"type": "array", "items": {
+        "type": "object", "additionalProperties": False, "required": ["index", "note", "issues", "strengths"],
         "properties": {
-            "client_request": {"type": "string"},
-            "criteria": {"type": "object", "additionalProperties": False, "required": list(criteria),
-                         "properties": criteria},
-        },
-    }
+            "index": {"type": "integer"},
+            "note": {"type": "string"},
+            "issues": {"type": "array", "items": {
+                "type": "object", "additionalProperties": False, "required": ["criterion_id", "note"],
+                "properties": {"criterion_id": ids, "note": {"type": "string"}}}},
+            "strengths": {"type": "array", "items": ids},
+        }}}
+
+
+def build_response_schema(checklist: dict[str, Any], turn_review: bool = True) -> dict[str, Any]:
+    criteria = {c["id"]: _criterion_schema(c) for c in checklist["criteria"]}
+    props: dict[str, Any] = {"client_request": {"type": "string"}}
+    if turn_review:                      # разбор идёт первым: модель сначала анализирует реплики, потом выносит вердикт
+        props["turn_review"] = _turn_review_schema(checklist)
+    props["criteria"] = {"type": "object", "additionalProperties": False, "required": list(criteria),
+                         "properties": criteria}
+    return {"type": "object", "additionalProperties": False, "required": list(props), "properties": props}

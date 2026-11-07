@@ -198,3 +198,47 @@ def test_evaluate_with_samples_sums_usage_and_reports_votes(client, monkeypatch)
     assert c05["answer"] == "no" and sorted(c05["votes"]) == ["no", "no", "yes"] and c05["agreement"] == 0.67
     assert ev["usage"]["cost_usd"] == 0.03 and ev["usage"]["input_tokens"] == 3000
     assert ev["model"]["samples"] == 3
+
+
+# --- разбор по репликам ---------------------------------------------------------------------------------
+def test_turn_review_is_consistent_with_verdicts(default_checklist):
+    conv = normalize_conversation(RECORD, "DEV")
+    llm = llm_answer()
+    llm["turn_review"] = [
+        {"index": 3, "note": "Поздоровался и предложил перевести деньги лично.",
+         "issues": [{"criterion_id": "c08", "note": "Деньги на личную карту"},
+                    {"criterion_id": "c01", "note": "ошибочно"}],            # c01 = yes → отметка снимается
+         "strengths": ["c01", "c05"]},                                      # c05 = no → «сильная сторона» снимается
+        {"index": 5, "note": "", "issues": [], "strengths": []},
+        {"index": 1, "note": "бот", "issues": [{"criterion_id": "c05", "note": "x"}], "strengths": []},  # не оператор
+    ]
+    ev = evaluator.assemble(conv, default_checklist, llm)
+    turns = {t["index"]: t for t in ev["turn_review"]}
+    assert list(turns) == [3, 5]                                            # только реплики оператора
+    assert [i["criterion_id"] for i in turns[3]["issues"]] == ["c08", "c04"] or \
+        {i["criterion_id"] for i in turns[3]["issues"]} >= {"c08"}
+    assert "c01" not in {i["criterion_id"] for i in turns[3]["issues"]}
+    assert [s["criterion_id"] for s in turns[3]["strengths"]] == ["c01"]
+    # доказательства нарушенных критериев c04 и c05 (реплика 5) отмечены, даже если модель их не поставила
+    assert {i["criterion_id"] for i in turns[5]["issues"]} >= {"c04", "c05"}
+    assert turns[5]["note"]                                                  # пустая заметка → текст реплики
+    rows = {c["criterion_id"]: c for c in ev["criteria"]}
+    assert rows["c08"]["issue_turns"] == [3] and 5 in rows["c05"]["issue_turns"]
+
+
+def test_turn_review_expected_marker_for_missed_action(default_checklist):
+    conv = normalize_conversation(RECORD, "DEV")
+    llm = llm_answer(c07={"answer": "no", "evidence": [], "expected_range": {"from": 5, "to": 6},
+                          "explanation": "Оператор не попрощался. Ожидалось в конце."})
+    ev = evaluator.assemble(conv, default_checklist, llm)
+    t5 = next(t for t in ev["turn_review"] if t["index"] == 5)
+    c07 = next(i for i in t5["issues"] if i["criterion_id"] == "c07")
+    assert c07["source"] == "expected" and c07["note"].startswith("Здесь ожидалось")
+
+
+def test_schema_puts_turn_review_before_criteria(default_checklist):
+    schema = prompts.build_response_schema(default_checklist)
+    assert list(schema["properties"]) == ["client_request", "turn_review", "criteria"]
+    assert "turn_review" not in prompts.build_response_schema(default_checklist, turn_review=False)["properties"]
+    user = prompts.build_user_prompt(normalize_conversation(RECORD, "DEV"))
+    assert "Реплики оператора для разбора: [3], [5]" in user

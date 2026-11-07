@@ -7,7 +7,7 @@ from .. import db
 from ..config import get_settings
 
 EFFORTS = ("low", "medium", "high", "xhigh", "max")
-EDITABLE = {"model", "reasoning_effort", "self_consistency", "llm_concurrency"}
+EDITABLE = {"model", "reasoning_effort", "self_consistency", "llm_concurrency", "turn_review"}
 
 
 class SettingsError(ValueError):
@@ -22,7 +22,8 @@ def _stored() -> dict[str, Any]:
 def runtime_settings() -> dict[str, Any]:
     s = get_settings()
     values = {"model": s.openai_model, "reasoning_effort": s.reasoning_effort,
-              "self_consistency": s.self_consistency, "llm_concurrency": s.llm_concurrency}
+              "self_consistency": s.self_consistency, "llm_concurrency": s.llm_concurrency,
+              "turn_review": s.turn_review}
     values.update({k: v for k, v in _stored().items() if k in EDITABLE})
     return values
 
@@ -49,6 +50,8 @@ def update(values: dict[str, Any]) -> dict[str, Any]:
                 raise SettingsError(f"{k}: целое число")
             if not 1 <= v <= (7 if k == "self_consistency" else 16):
                 raise SettingsError(f"{k}: вне допустимого диапазона")
+        elif k == "turn_review":
+            v = v if isinstance(v, bool) else str(v).lower() in ("1", "true", "yes", "on")
         elif k == "model":
             v = str(v).strip()
             if not v:

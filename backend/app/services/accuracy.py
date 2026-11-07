@@ -43,6 +43,45 @@ def latest_evaluations(conversation_ids: list[str], checklist_id: str, version: 
     return result
 
 
+def evidence_report(evaluations: dict[str, dict], checklist: dict[str, Any]) -> dict[str, Any]:
+    """Насколько точно система указывает реплики (без эталона реплик — проверяемые свойства):
+    - valid: цитата найдена в указанной реплике;
+    - bad_located: каждый нарушенный критерий привязан к реплике оператора (или к месту, где действие ожидалось);
+    - turn_review_coverage: доля реплик оператора с разбором;
+    - consistent: в разборе нет ошибок по критериям, которые в итоге выполнены."""
+    from . import conversations as conversation_store
+    from .evaluator import criterion_status
+    crit = {c["id"]: c for c in checklist["criteria"]}
+    n_items = n_valid = n_bad = n_bad_loc = n_turns = n_noted = n_issues = n_incons = 0
+    for cid, ev in evaluations.items():
+        conv = conversation_store.get(cid)
+        if not conv:
+            continue
+        roles = {t["index"]: t["speaker"] for t in conv["transcript"]}
+        for row in ev["criteria"]:
+            c = crit.get(row["criterion_id"])
+            if not c:
+                continue
+            n_items += 1
+            n_valid += bool(row.get("evidence_valid"))
+            if criterion_status(c, row["answer"]) == "bad":
+                n_bad += 1
+                op_ev = any(roles.get(e["index"]) == "operator" for e in row.get("evidence") or [])
+                n_bad_loc += bool(row.get("issue_turns") or op_ev or row.get("expected_range"))
+        status = {r["criterion_id"]: criterion_status(crit[r["criterion_id"]], r["answer"])
+                  for r in ev["criteria"] if r["criterion_id"] in crit}
+        for t in ev.get("turn_review") or []:
+            n_turns += 1
+            n_noted += bool(t.get("note"))
+            for iss in t.get("issues") or []:
+                n_issues += 1
+                n_incons += status.get(iss["criterion_id"]) != "bad"
+    r = lambda a, b: round(a / b, 4) if b else None  # noqa: E731
+    return {"valid": r(n_valid, n_items), "bad_located": r(n_bad_loc, n_bad), "bad_criteria": n_bad,
+            "turn_review_coverage": r(n_noted, n_turns), "turn_issues": n_issues,
+            "consistent": r(n_issues - n_incons, n_issues)}
+
+
 def _language(cid: str, ev: dict | None) -> str:
     parts = cid.split("-")
     return parts[1].upper() if len(parts) > 2 else "?"
@@ -106,5 +145,6 @@ def compute(group_id: str = "DEV", evaluations: dict[str, dict] | None = None) -
         "gross": {"tp": tp, "fp": fp, "fn": fn,
                   "precision": round(tp / (tp + fp), 4) if tp + fp else None,
                   "recall": round(tp / (tp + fn), 4) if tp + fn else None},
+        "evidence": evidence_report({c: e for c, e in evaluations.items() if c in labels}, checklist),
         "mismatches": mismatches,
     }

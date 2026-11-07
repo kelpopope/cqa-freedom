@@ -138,7 +138,78 @@ def _save(evaluation: dict[str, Any]) -> None:
              evaluation["checklist_version"], evaluation["status"], db.dumps(evaluation)))
 
 
-_IDENTITY_CRITERION = re.compile(r"идентифик|identif|жеке бас", re.I)
+def _short(text: str, limit: int = 160) -> str:
+    text = re.sub(r"\s+", " ", text or "").strip()
+    first = re.split(r"(?<=[.!?])\s", text, maxsplit=1)[0]
+    return first if len(first) <= limit else first[: limit - 1].rstrip() + "…"
+
+
+def criterion_status(c: dict[str, Any], answer: Any) -> str:
+    """bad — критерий нарушен (нет / ступень ниже максимума / флаг выявлен), good — выполнен полностью, neutral — N/A."""
+    if answer == "na":
+        return "neutral"
+    if c["type"] == "flag":
+        return "bad" if answer == "yes" else "neutral"
+    if c["type"] == "scale":
+        top = max(s["value"] for s in c["scale"])
+        return "good" if answer == top else "bad"
+    return "good" if answer == "yes" else "bad"
+
+
+def build_turn_review(conversation: dict[str, Any], checklist: dict[str, Any], rows: list[dict[str, Any]],
+                      llm_review: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    """Разбор по каждой реплике оператора, согласованный с итоговыми ответами.
+
+    Ошибка показывается в реплике, только если критерий в итоге нарушен (иначе разбор модели противоречил бы
+    вердикту). Реплики-доказательства нарушенных критериев получают отметку, даже если модель её не поставила;
+    для пропущенного действия — отметку «здесь ожидалось». Удержание и дубли не разбираются."""
+    tr = conversation["transcript"]
+    ops = [t["index"] for t in tr if t["speaker"] == "operator" and not t.get("on_hold") and not t.get("duplicate")]
+    crit = {c["id"]: c for c in checklist["criteria"]}
+    status = {r["criterion_id"]: criterion_status(crit[r["criterion_id"]], r["answer"]) for r in rows}
+    by_turn: dict[int, dict[str, Any]] = {i: {"index": i, "note": "", "issues": [], "strengths": []} for i in ops}
+
+    def add_issue(i, cid, note, source):
+        if i in by_turn and not any(x["criterion_id"] == cid for x in by_turn[i]["issues"]):
+            by_turn[i]["issues"].append({"criterion_id": cid, "title": crit[cid]["title"], "note": note, "source": source})
+
+    def add_strength(i, cid):
+        if i in by_turn and not any(x["criterion_id"] == cid for x in by_turn[i]["strengths"]):
+            by_turn[i]["strengths"].append({"criterion_id": cid, "title": crit[cid]["title"]})
+
+    for item in llm_review or []:
+        i = item.get("index")
+        if i not in by_turn:
+            continue
+        by_turn[i]["note"] = (item.get("note") or "").strip()
+        for iss in item.get("issues") or []:
+            if status.get(iss.get("criterion_id")) == "bad":
+                add_issue(i, iss["criterion_id"], (iss.get("note") or "").strip(), "llm")
+        for cid in item.get("strengths") or []:
+            if status.get(cid) == "good":
+                add_strength(i, cid)
+
+    for r in rows:
+        cid = r["criterion_id"]
+        ev_turns = [e["index"] for e in r.get("evidence") or [] if e.get("index") in by_turn]
+        if status[cid] == "bad":
+            for i in ev_turns:
+                add_issue(i, cid, _short(r.get("explanation")), "evidence")
+            rng = r.get("expected_range")
+            if rng and not ev_turns:
+                target = next((i for i in ops if rng["from"] <= i <= rng["to"]), None)
+                if target is not None:
+                    add_issue(target, cid, "Здесь ожидалось: " + _short(r.get("explanation")), "expected")
+        elif status[cid] == "good":
+            for i in ev_turns:
+                add_strength(i, cid)
+    for t in by_turn.values():
+        if not t["note"]:
+            t["note"] = _short(tr[t["index"]]["text"], 120)
+    return [by_turn[i] for i in ops]
+
+
+_IDENTITY_CRITERION = re.compile(r"идентифик|идентификац|identif|жеке бас", re.I)
 FLAG_LABELS = {"insult": "оскорбление", "private_service": "услуга в обход компании",
                "confidential_disclosure": "раскрытие конфиденциальной информации"}
 
@@ -227,6 +298,9 @@ def assemble(conversation: dict[str, Any], checklist: dict[str, Any], llm: dict[
     gross = {"flag": scored["gross_error"], "types": sorted(set(gross_types)), "evidence": gross_evidence,
              "rules_agree": None}
     apply_rules(checklist, transcript, criteria, gross, timeline, review_reasons)
+    turns = build_turn_review(conversation, checklist, criteria, llm.get("turn_review"))
+    for row in criteria:                 # в каких репликах отмечен критерий — для подсветки в транскрипте
+        row["issue_turns"] = [t["index"] for t in turns if any(x["criterion_id"] == row["criterion_id"] for x in t["issues"])]
     return {
         "criteria": criteria,
         "sections": scored["sections"],
@@ -235,6 +309,7 @@ def assemble(conversation: dict[str, Any], checklist: dict[str, Any], llm: dict[
         "needs_review": bool(review_reasons),
         "review_reasons": review_reasons,
         "timeline": timeline,
+        "turn_review": turns,
         "bot_context": build_bot_context(transcript, timeline, llm.get("client_request", "")),
         "client_request": llm.get("client_request", ""),
         "final": {"total": scored["total"], "overrides": []},
@@ -344,6 +419,13 @@ def vote(checklist: dict[str, Any], samples: list[dict[str, Any]]) -> tuple[dict
         if counts[winner] * 2 <= len(answers):          # нет строгого большинства
             item["confidence"] = "low"
         merged["criteria"][cid] = item
+    # Разбор по репликам — из прогона, который лучше всех согласен с итоговыми ответами
+    if any("turn_review" in s for s in samples):
+        def agreement(sample):
+            return sum(normalize_answer(c, sample["criteria"][c["id"]]["answer"]) ==
+                       normalize_answer(c, merged["criteria"][c["id"]]["answer"]) for c in checklist["criteria"])
+        best = max(samples, key=agreement)
+        merged["turn_review"] = best.get("turn_review") or []
     return merged, votes
 
 
@@ -371,8 +453,10 @@ def evaluate(conversation_id: str, checklist_id: str = "default", version: int |
         "created_at": datetime.now(ASTANA).isoformat(timespec="seconds"),
     }
 
-    messages = build_prompt(checklist, conversation)
-    schema = build_response_schema(checklist)
+    turn_review = bool(s.get("turn_review", True))
+    evaluation["model"]["turn_review"] = turn_review
+    messages = build_prompt(checklist, conversation, turn_review)
+    schema = build_response_schema(checklist, turn_review)
     n = max(1, int(samples or s["self_consistency"]))
     evaluation["model"]["samples"] = n
     started = time.monotonic()

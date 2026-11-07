@@ -29,6 +29,7 @@ class Settings:
     reasoning_effort: str      # low | medium | high | xhigh | max (gpt-6.1-sol не поддерживает temperature)
     llm_concurrency: int       # одновременных диалогов при пакетной оценке
     self_consistency: int      # прогонов модели на один диалог (голосование большинством)
+    turn_review: bool          # разбор каждой реплики оператора перед вердиктом
     price_input_per_1m: float  # $ за 1 млн входных токенов
     price_cached_per_1m: float
     price_output_per_1m: float
@@ -47,6 +48,7 @@ def get_settings() -> Settings:
         reasoning_effort=os.getenv("OPENAI_REASONING_EFFORT", "medium").strip() or "medium",
         llm_concurrency=int(os.getenv("LLM_CONCURRENCY", "6") or 6),
         self_consistency=int(os.getenv("SELF_CONSISTENCY", "3") or 3),
+        turn_review=os.getenv("TURN_REVIEW", "1").strip().lower() not in ("0", "false", "no", "off"),
         price_input_per_1m=float(os.getenv("OPENAI_PRICE_INPUT_PER_1M", "2.0") or 2.0),
         price_cached_per_1m=float(os.getenv("OPENAI_PRICE_CACHED_PER_1M", "0.10") or 0.10),
         price_output_per_1m=float(os.getenv("OPENAI_PRICE_OUTPUT_PER_1M", "10.0") or 10.0),
