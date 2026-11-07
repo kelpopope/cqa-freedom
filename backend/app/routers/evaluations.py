@@ -7,7 +7,8 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from ..services import accuracy, analytics, jobs
+from ..services import accuracy, analytics, jobs, results_export
+from ..services import conversations as conversation_store
 from ..services import settings as settings_service
 from ..services.evaluator import EvaluationError, evaluate, get_evaluation, history
 
@@ -114,3 +115,15 @@ def put_settings(values: dict[str, Any] = Body(...)):
         return settings_service.update(values)
     except settings_service.SettingsError as e:
         raise HTTPException(422, str(e))
+
+
+@router.get("/results/export")
+def export_results(group_id: str, team_name: str = "CQA Freedom", expected: Optional[int] = None):
+    """Официальный results.json (формат организаторов 1.0) по набору + проверка формата в заголовке ответа."""
+    ids = [i["conversation_id"] for i in conversation_store.list_items(group_id=group_id)]
+    if not ids:
+        raise HTTPException(404, f"Нет диалогов группы {group_id}")
+    doc = results_export.build(ids, team_name, settings_service.runtime_settings()["model"])
+    problems = results_export.validate(doc, ids, expected)
+    return JSONResponse(content=doc, headers={"X-Results-Valid": "true" if not problems else "false",
+                                              "Content-Disposition": f'attachment; filename="results_{group_id}.json"'})
