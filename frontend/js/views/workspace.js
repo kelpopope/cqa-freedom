@@ -73,7 +73,7 @@ function queueHtml() {
   const base = role() === 'operator' ? S.list.filter((x) => x.operator_name === ROLES.operator.person) : S.list;
   const counts = { all: base.length, risk: base.filter((x) => x.evaluation?.gross_error).length, attention: base.filter((x) => x.evaluation?.needs_review || x.appeal_status === 'open' || !x.evaluation).length };
   return `
-    <div class="cqa-q__head"><h2>${role() === 'operator' ? 'Мои диалоги' : 'На проверку'}</h2><button type="button" class="cqa-btn cqa-btn--ghost cqa-btn--icon cqa-btn--sm" id="cqa-q-filter" aria-label="Фильтры" aria-expanded="false">${icon('filter')}</button></div>
+    <div class="cqa-q__head"><h2>${role() === 'operator' ? 'Мои диалоги' : 'На проверку'}</h2><button type="button" class="cqa-btn cqa-btn--ghost cqa-btn--icon cqa-btn--sm cqa-q-pin" id="cqa-q-pin" aria-label="Скрыть список" title="Скрыть список">${icon('left', 'cqa-ico--sm')}</button><button type="button" class="cqa-btn cqa-btn--ghost cqa-btn--icon cqa-btn--sm" id="cqa-q-filter" aria-label="Фильтры" aria-expanded="false">${icon('filter')}</button></div>
     <div class="cqa-q__tools">
       <div class="cqa-tabs" role="group" aria-label="Показать">
         ${[['all', 'Все'], ['risk', 'Нарушения'], ['attention', 'Внимание']].map(([v, t]) => `<button type="button" data-view="${v}" aria-pressed="${f.view === v}">${t}<span class="cqa-n ${v === 'risk' && counts.risk ? 'cqa-n--bad' : ''}">${counts[v]}</span></button>`).join('')}
@@ -341,17 +341,31 @@ function hdHtml(conv, ev, meta, cl) {
     ${ev ? `<div class="cqa-hd__crit"><span class="cqa-hd__lbl">Оценка по критериям</span>${mapHtml(conv, ev, meta)}</div>` : ''}`;
 }
 
+// Кольцо итога: дуга критерия пропорциональна его весу после перераспределения N/A;
+// закрашено — набранные баллы, красным — потерянные. Наведение — подсказка, клик — критерий открывается ниже.
+function donutHtml(rows, meta, T) {
+  if (!T.W) return '<svg class="cqa-donut__svg" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="48" class="cqa-donut__bg"/></svg>';
+  const R = 48; const C = 2 * Math.PI * R; const gap = 2.2;
+  let start = 0;
+  const arcs = rows.filter((r) => { const c = meta.get(r.criterion_id); return c && c.type !== 'flag' && r.answer !== 'na'; }).map((r) => {
+    const c = meta.get(r.criterion_id); const w = c.weight || 0; const raw = r.raw_points || 0;
+    const e = (raw / T.W) * C; const l = ((w - raw) / T.W) * C; const s = start; start += e + l;
+    const kind = answerView(c, r.answer).cls;
+    const lostPts = ((w - raw) / T.W) * 100;
+    const tip = `${c.num} ${c.title}|${pts(raw)} из ${w}${w - raw > 0 ? ` · −${fmt2(lostPts)} к итогу` : ' · полный балл'}`;
+    const seg = (len, off, cls) => (len > 0.5 ? `<circle cx="60" cy="60" r="${R}" class="cqa-donut__seg ${cls}" stroke-dasharray="${Math.max(0.01, len).toFixed(2)} ${C.toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}"/>` : '');
+    const eLen = l > 0.5 ? e : e - gap; const lLen = l - gap;
+    return `<g class="cqa-donut__g" data-crit-open="${c.id}" data-tip="${esc(tip)}" tabindex="0" role="button" aria-label="${esc(tip.replace('|', ': '))}">${seg(eLen, s, kind === 'mid' ? 'is-mid' : 'is-ok')}${seg(lLen, s + e, 'is-lost')}</g>`;
+  }).join('');
+  return `<svg class="cqa-donut__svg" viewBox="0 0 120 120" role="group" aria-label="Итог по критериям"><circle cx="60" cy="60" r="${R}" class="cqa-donut__bg"/><g transform="rotate(-90 60 60)">${arcs}</g></svg>`;
+}
+
 function evalHtml(conv, ev, cl) {
   const meta = metaMap(cl); const rows = rowsOf(ev); const T = totals(ev, cl); const rl = role();
   const g = ev.gross_error;
   const tone = g?.flag ? ['bad', 'Грубое нарушение'] : T.total == null ? ['outline', 'Не рассчитан'] : T.total >= 85 ? ['ok', 'Норма'] : T.total >= 60 ? ['warn', 'Есть замечания'] : ['bad', 'Критично'];
   const changed = ev.final?.overrides?.length && ev.final.total !== ev.total;
-  const segs = rows.filter((r) => meta.get(r.criterion_id)?.type !== 'flag').map((r) => {
-    const c = meta.get(r.criterion_id);
-    if (r.answer === 'na') return `<span class="cqa-bar__seg cqa-bar__seg--na" data-crit-open="${c.id}" title="${c.num} ${esc(c.title)}: N/A, вес ${c.weight} перераспределён"></span>`;
-    const share = c.weight ? (r.raw_points / c.weight) * 100 : 0;
-    return `<span class="cqa-bar__seg ${answerView(c, r.answer).cls === 'mid' ? 'cqa-bar__seg--mid' : ''}" style="flex:${c.weight} 1 0" data-crit-open="${c.id}" title="${c.num} ${esc(c.title)}: ${pts(r.raw_points)} из ${c.weight}"><i class="cqa-bar__fill" data-w="${share}%"></i></span>`;
-  }).join('');
+  const donut = donutHtml(rows, meta, T);
   const low = rows.filter((r) => r.confidence === 'low' || r.evidence_valid === false).map((r) => meta.get(r.criterion_id)).filter(Boolean);
   const openAp = S.data.appeals.filter((a) => a.status === 'open' && a.evaluation_id === ev.evaluation_id && a.author_role === 'operator');
   const firstOpen = S.active || rows.find((r) => { const c = meta.get(r.criterion_id); return c && c.type !== 'flag' && failed(c, r); })?.criterion_id;
@@ -383,10 +397,13 @@ function evalHtml(conv, ev, cl) {
     <div class="cqa-col__body cqa-scroll" id="cqa-crit-scroll">
     <div class="cqa-score ${tone[0] === 'bad' && !g?.flag ? 'cqa-score--low' : ''}">
       <div class="cqa-score__l1"><h2>Итоговый балл</h2><button type="button" class="cqa-link" id="cqa-howto">${icon('help', 'cqa-ico--sm')}Как считается</button></div>
-      <div class="cqa-score__num"><b id="cqa-total" data-v="${T.total ?? ''}">${T.total == null ? '—' : fmt2(T.total)}</b><span>/ 100</span><span class="cqa-badge cqa-badge--${tone[0]}">${tone[1]}</span></div>
-      <div class="cqa-bar" role="img" aria-label="Вклад критериев в итог: ${pts(T.raw)} из ${pts(T.W)}" title="Ширина отрезка — вес критерия, заливка — набранные баллы${T.na.length ? ', пунктир — N/A' : ''}">${segs}</div>
+      <div class="cqa-score__main">
+        <div class="cqa-donut">${donut}<div class="cqa-donut__c"><b id="cqa-total" data-v="${T.total ?? ''}">${T.total == null ? '—' : fmt2(T.total)}</b><span>из 100</span></div><div class="cqa-donut__tip" id="cqa-donut-tip" role="status" hidden></div></div>
+        <div class="cqa-score__side"><span class="cqa-badge cqa-badge--${tone[0]}">${tone[1]}</span>
       <div class="cqa-score__raw">${T.total == null ? 'Нет применимых критериев с весом: итог не рассчитывается' : `${pts(T.raw)} из ${pts(T.W)} баллов${T.na.length ? ` · N/A: ${T.na.map((c) => c.title.toLowerCase()).join(', ')}` : ''}`}${changed ? `<br>После решения проверяющего: <s>${fmt2(ev.total)}</s> → <b>${fmt2(ev.final.total)}</b>` : ''}</div>
       ${flags ? `<ul class="cqa-flags">${flags}</ul>` : ''}
+        </div>
+      </div>
     </div>
       <div class="cqa-crit-h"><h2>Критерии</h2><span>версия ${ev.checklist_version}</span></div>
       ${secs}
@@ -460,7 +477,14 @@ function bindColumns() {
     if (t.closest('#cqa-repeat')) { const b = t.closest('#cqa-repeat'); b.innerHTML = '<span class="cqa-spin" style="width:11px;height:11px"></span> Повторный прогон'; const ev = await api.repeatEvaluation(S.data.evaluation.evaluation_id); toast(`Повторный прогон: совпадение ${Math.round(ev.reproducibility.agreement * 100)} %`); await loadConversation(S.id, { keepScroll: true }); return; }
     if (t.closest('#cqa-eval-now')) { await evaluateNow(); }
   };
-  ws.onmouseover = (e) => { const c = e.target.closest('.cqa-cr[data-crit]'); if (c) light(c.dataset.crit, true); };
+  ws.onmouseover = (e) => {
+    const c = e.target.closest('.cqa-cr[data-crit]'); if (c) light(c.dataset.crit, true);
+    const g = e.target.closest('.cqa-donut__g'); const tipEl = S.main.querySelector('#cqa-donut-tip');
+    if (tipEl) {
+      if (g) { const [t, v] = g.dataset.tip.split('|'); tipEl.innerHTML = `<b>${esc(t)}</b><span>${esc(v)}</span>`; tipEl.hidden = false; S.main.querySelectorAll('.cqa-donut__g').forEach((x) => x.classList.toggle('is-dim', x !== g)); }
+      else if (!e.target.closest('.cqa-donut')) { tipEl.hidden = true; S.main.querySelectorAll('.cqa-donut__g').forEach((x) => x.classList.remove('is-dim')); }
+    }
+  };
   ws.onmouseout = (e) => { const c = e.target.closest('.cqa-cr[data-crit]'); if (c) light(c.dataset.crit, false); };
 }
 
@@ -609,12 +633,30 @@ async function reloadAll() {
   refreshShell();
 }
 
+// Список диалогов: закреплён колонкой или скрыт и выдвигается кнопкой «Диалоги» (выбор сохраняется в браузере).
+function queueMode() { try { return localStorage.getItem('cqa.queue.mode') === 'drawer' ? 'drawer' : 'column'; } catch { return 'column'; } }
+function bindDrawer() {
+  const rootEl = document.querySelector('.cqa-root');
+  const pin = S.main.querySelector('#cqa-q-pin');
+  const sync = () => { const d = rootEl.dataset.queueMode === 'drawer'; pin.innerHTML = icon(d ? 'right' : 'left', 'cqa-ico--sm'); pin.title = d ? 'Закрепить список' : 'Скрыть список'; pin.setAttribute('aria-label', pin.title); };
+  pin.addEventListener('click', () => {
+    const mode = rootEl.dataset.queueMode === 'drawer' ? 'column' : 'drawer';
+    rootEl.dataset.queueMode = mode; rootEl.dataset.queueOpen = 'false';
+    try { localStorage.setItem('cqa.queue.mode', mode); } catch { /* приватный режим */ }
+    sync();
+  });
+  // Клик мимо выдвинутого списка или Esc — закрыть
+  S.outside = (e) => { if (rootEl.dataset.queueOpen === 'true' && !e.target.closest('.cqa-q, #cqa-q-toggle, .cqa-pop')) rootEl.dataset.queueOpen = 'false'; };
+  document.addEventListener('pointerdown', S.outside);
+  sync();
+}
+
 function headHtml() {
   const rl = role();
   const title = rl === 'operator' ? 'Мои диалоги' : rl === 'manager' ? 'Диалоги' : 'Проверка диалогов';
   const n = S.list.filter((x) => x.evaluation).length;
   return `<div class="cqa-page-head">
-      <button type="button" class="cqa-btn cqa-btn--icon cqa-q-toggle" id="cqa-q-toggle" aria-label="Очередь диалогов">${icon('inbox')}</button>
+      <button type="button" class="cqa-btn cqa-btn--sm cqa-q-toggle" id="cqa-q-toggle" aria-label="Список диалогов" title="Список диалогов">${icon('menu', 'cqa-ico--sm')}<span>Диалоги</span></button>
       <h1>${title}</h1>
       ${rl === 'qa' ? `<div class="cqa-page-head__actions">
         <label class="cqa-label" for="cqa-group">Набор</label>
@@ -628,7 +670,7 @@ function headHtml() {
 
 function bindHead() {
   const m = S.main; const rootEl = document.querySelector('.cqa-root');
-  m.querySelector('#cqa-q-toggle')?.addEventListener('click', () => { rootEl.dataset.queueOpen = rootEl.dataset.queueOpen === 'true' ? 'false' : 'true'; });
+  m.querySelector('#cqa-q-toggle')?.addEventListener('click', (e) => { e.stopPropagation(); rootEl.dataset.queueOpen = rootEl.dataset.queueOpen === 'true' ? 'false' : 'true'; });
   m.querySelectorAll('[data-wstab]').forEach((b) => b.addEventListener('click', () => { rootEl.dataset.wsTab = b.dataset.wstab; }));
   m.querySelector('#cqa-import')?.addEventListener('click', async (e) => {
     const g = m.querySelector('#cqa-group').value.trim(); const b = e.currentTarget;
@@ -656,13 +698,14 @@ export async function render(main, { id } = {}) {
   S.main = main; S.active = null;
   main.classList.add('cqa-main--fill');
   const rootEl = document.querySelector('.cqa-root'); rootEl.dataset.wsTab = 'chat'; rootEl.dataset.queueOpen = 'false';
+  rootEl.dataset.queueMode = queueMode();
   S.list = await api.listConversations();
   const ids = filtered().map((x) => x.conversation_id);
   S.id = id && S.list.some((x) => x.conversation_id === id) ? id : ids[0];
   if (!S.id) { main.innerHTML = `${headHtml()}<div class="cqa-card"><div class="cqa-empty"><div class="cqa-empty__icon">${icon('inbox')}</div><h2>Диалогов пока нет</h2><p>Загрузите набор по group_id, чтобы начать проверку</p></div></div>`; bindHead(); return; }
   if (!id) history.replaceState(null, '', `#/dialogs/${encodeURIComponent(S.id)}`);
   main.innerHTML = `${headHtml()}<div class="cqa-ws"><section class="cqa-hd" id="cqa-hd" aria-label="Сводка диалога"></section><section class="cqa-col cqa-q" aria-label="Очередь">${queueHtml()}</section><section class="cqa-col cqa-c" aria-label="Диалог"></section><section class="cqa-col cqa-e" aria-label="Оценка"></section></div>`;
-  bindHead(); bindQueue(); bindColumns(); markQueue();
+  bindHead(); bindQueue(); bindColumns(); markQueue(); bindDrawer();
   await loadConversation(S.id);
   S.keys = (e) => {
     if (e.target.closest?.('input, textarea, select') || document.querySelector('.cqa-modal-back, .cqa-cmd-back')) return;
@@ -670,6 +713,7 @@ export async function render(main, { id } = {}) {
     if (e.key === 'j' && p < order.length - 1) location.hash = `#/dialogs/${encodeURIComponent(order[p + 1])}`;
     else if (e.key === 'k' && p > 0) location.hash = `#/dialogs/${encodeURIComponent(order[p - 1])}`;
     else if (e.key === '/') { e.preventDefault(); S.main.querySelector('#cqa-q-search')?.focus(); }
+    else if (e.key === 'Escape' && document.querySelector('.cqa-root').dataset.queueOpen === 'true') { document.querySelector('.cqa-root').dataset.queueOpen = 'false'; }
     else if (e.key === 'Escape') { S.main.querySelectorAll('.cqa-cr.is-open').forEach((x) => x.classList.remove('is-open')); S.active = null; }
     else if (/^[1-9]$/.test(e.key) && S.data?.evaluation) { const c = S.data.checklist.criteria[Number(e.key) - 1]; if (c) openCrit(c.id); }
   };
@@ -686,5 +730,6 @@ export function destroy() {
   S.main?.classList.remove('cqa-main--fill');
   document.removeEventListener('keydown', S.keys);
   S.player?.stop?.(); S.player = null;
-  const rootEl = document.querySelector('.cqa-root'); delete rootEl.dataset.wsTab; delete rootEl.dataset.queueOpen;
+  const rootEl = document.querySelector('.cqa-root'); delete rootEl.dataset.wsTab; delete rootEl.dataset.queueOpen; delete rootEl.dataset.queueMode;
+  document.removeEventListener('pointerdown', S.outside);
 }

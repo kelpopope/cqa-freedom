@@ -238,3 +238,40 @@ button.cqa-sla:hover { background: var(--cqa-surface-2); }
 
 /* Элементы оформления v2 (шапка диалога, номера и баллы в пути) — в классическом скрыты */
 .cqa-hd, .cqa-path__n, .cqa-path__v { display: none; }
+
+/* ---------- Список диалогов: закреплён или выдвигается ---------- */
+.cqa-q__head .cqa-q-pin { margin-left: auto; }
+.cqa-q-toggle span { margin-left: 6px; }
+@media (min-width: 1241px) {
+  .cqa-root[data-queue-mode="drawer"] .cqa-q-toggle { display: inline-flex !important; }
+  .cqa-root[data-queue-mode="drawer"] .cqa-ws { grid-template-columns: minmax(0, 1fr) var(--cqa-eval-w); }
+  .cqa-root[data-queue-mode="drawer"] .cqa-ws > .cqa-q {
+    position: fixed; z-index: 35; top: 0; bottom: 0; left: var(--cqa-side-w); width: 340px; border-radius: 0;
+    transform: translateX(calc(-100% - var(--cqa-side-w) - 24px)); transition: transform var(--cqa-base) var(--cqa-ease); box-shadow: var(--cqa-shadow-pop);
+  }
+  .cqa-root[data-queue-mode="drawer"][data-queue-open="true"] .cqa-ws > .cqa-q { transform: none; }
+}
+@media (max-width: 1240px) { .cqa-q-pin { display: none; } }
+
+/* ---------- Итог: кольцо по критериям ---------- */
+.cqa-score__main { display: flex; align-items: center; gap: 18px; margin-top: 10px; }
+.cqa-score__side { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.cqa-score__side .cqa-score__raw { margin-top: 0; }
+.cqa-score__side .cqa-flags { margin-top: 2px; width: 100%; }
+.cqa-donut { position: relative; flex: none; width: 132px; height: 132px; }
+.cqa-donut__svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.cqa-donut__bg { fill: none; stroke: var(--cqa-surface-3); stroke-width: 14; }
+.cqa-donut__seg { fill: none; stroke-width: 14; transition: stroke-width var(--cqa-fast), opacity var(--cqa-fast); }
+.cqa-donut__seg.is-ok { stroke: var(--cqa-green); }
+.cqa-donut__seg.is-mid { stroke: var(--cqa-warn-dot); }
+.cqa-donut__seg.is-lost { stroke: var(--cqa-bad); stroke-opacity: 0.55; }
+.cqa-donut__g { cursor: pointer; outline: none; }
+.cqa-donut__g:hover .cqa-donut__seg, .cqa-donut__g:focus-visible .cqa-donut__seg { stroke-width: 19; }
+.cqa-donut__g.is-dim .cqa-donut__seg { opacity: 0.35; }
+.cqa-donut__c { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
+.cqa-donut__c b { font-size: 26px; line-height: 1; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.cqa-donut__c span { margin-top: 3px; font-size: var(--cqa-fs-xs); color: var(--cqa-text-3); }
+.cqa-score--low .cqa-donut__c b { color: var(--cqa-bad); }
+.cqa-donut__tip { position: absolute; z-index: 5; left: 50%; top: calc(100% + 6px); transform: translateX(-50%); width: max-content; max-width: 240px; padding: 8px 10px; border-radius: 8px; background: var(--cqa-text); color: var(--cqa-surface); font-size: var(--cqa-fs-sm); line-height: 1.35; box-shadow: var(--cqa-shadow-2); pointer-events: none; }
+.cqa-donut__tip b { display: block; font-weight: 600; }
+.cqa-donut__tip span { display: block; opacity: 0.85; }
