@@ -192,13 +192,13 @@ function threadHtml(conv, ev, meta) {
   const pre = firstOp > 0 ? conv.transcript.slice(0, firstOp) : [];
   const post = firstOp > 0 ? conv.transcript.slice(firstOp) : conv.transcript;
   const bc = deriveBotContext(conv.transcript);
-  const preHasHits = pre.some((m) => hits.has(m.index));
   const one = (m) => msgHtml(m, conv, tagsBy.get(m.index) || [], isCall, hits.has(m.index), notes.has(m.index) ? `<div class="cqa-inline ${notes.get(m.index).kind === 'expected' ? 'cqa-inline--expected' : ''}">${icon('info', 'cqa-ico--sm')}${esc(refs1(notes.get(m.index).text))}</div>` : '');
   return `
     <div class="cqa-day">Начало ${isCall ? 'звонка' : 'переписки'}</div>
     ${pre.length ? `<div class="cqa-botctx"><b>${bc.client.length ? 'Клиент написал боту:' : 'Переписка с ботом'}</b>${bc.client.map((m) => `<div class="cqa-botctx__q">«${esc(m.text)}»</div>`).join('')}
-      <button type="button" class="cqa-link cqa-link--accent" id="cqa-pre-toggle" aria-expanded="${preHasHits}">${icon(preHasHits ? 'up' : 'down', 'cqa-ico--sm')}${preHasHits ? 'Скрыть' : 'Показать'} переписку с ботом, ${pre.length}</button></div>
-      <div class="cqa-pre" id="cqa-pre" ${preHasHits ? '' : 'hidden'}>${pre.map(one).join('')}</div>` : ''}
+      <button type="button" class="cqa-link cqa-link--accent" id="cqa-pre-toggle" aria-expanded="false">${icon('down', 'cqa-ico--sm')}Показать переписку с ботом, ${pre.length}</button></div>
+      <div class="cqa-pre" id="cqa-pre" hidden><div class="cqa-pre__h">До подключения оператора: клиент и бот</div>${pre.map(one).join('')}</div>
+      ${post.length ? `<div class="cqa-day cqa-day--op">Подключился оператор · ${esc(fmtTimestamp(post[0].timestamp))}</div>` : ''}` : ''}
     ${post.map(one).join('')}`;
 }
 
@@ -442,11 +442,18 @@ function light(critId, on) {
   (r?.evidence || []).forEach((e) => S.main.querySelector(`#msg-${e.index}`)?.classList.toggle('is-lit', on));
 }
 
+function preLabel(p, b) {
+  if (!b) return;
+  const n = p.querySelectorAll('[data-msg]').length;
+  b.setAttribute('aria-expanded', String(!p.hidden));
+  b.innerHTML = `${icon(p.hidden ? 'down' : 'up', 'cqa-ico--sm')}${p.hidden ? 'Показать' : 'Скрыть'} переписку с ботом, ${n}`;
+}
+
 function scrollToMsg(index, { flash = true } = {}) {
   const el = S.main.querySelector(`#msg-${index}`);
   if (!el) return;
   const pre = S.main.querySelector('#cqa-pre');
-  if (pre && pre.contains(el)) pre.hidden = false;
+  if (pre && pre.contains(el) && pre.hidden) { pre.hidden = false; preLabel(pre, S.main.querySelector('#cqa-pre-toggle')); }
   document.querySelector('.cqa-root').dataset.wsTab = 'chat';
   el.querySelector('details.cqa-more')?.setAttribute('open', ''); // переход к реплике раскрывает её подробности
   el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -481,7 +488,7 @@ function bindColumns() {
     const sk = t.closest('[data-seek]'); if (sk && S.player) { S.player.seek(Number(sk.dataset.seek)); return; }
     const row = t.closest('.cqa-cr__row');
     if (row) { const box = row.closest('.cqa-cr'); if (box.classList.contains('is-open')) { box.classList.remove('is-open'); row.setAttribute('aria-expanded', 'false'); S.active = null; } else openCrit(box.dataset.crit, { scroll: false }); return; }
-    if (t.closest('#cqa-pre-toggle')) { const p = S.main.querySelector('#cqa-pre'); p.hidden = !p.hidden; const b = t.closest('#cqa-pre-toggle'); b.setAttribute('aria-expanded', String(!p.hidden)); b.innerHTML = `${icon(p.hidden ? 'down' : 'up', 'cqa-ico--sm')}${p.hidden ? 'Показать' : 'Скрыть'} переписку с ботом, ${p.children.length}`; return; }
+    if (t.closest('#cqa-pre-toggle')) { const p = S.main.querySelector('#cqa-pre'); p.hidden = !p.hidden; const b = t.closest('#cqa-pre-toggle'); b.setAttribute('aria-expanded', String(!p.hidden)); preLabel(p, b); return; }
     const ap = t.closest('[data-appeal]'); if (ap) { appealModal(ap.dataset.appeal); return; }
     const ov = t.closest('[data-override]'); if (ov) { overrideModal(ov.dataset.override); return; }
     if (t.closest('#cqa-appeal-any')) { appealModal(S.active); return; }

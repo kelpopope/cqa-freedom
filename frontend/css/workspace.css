@@ -304,3 +304,9 @@ button.cqa-sla:hover { background: var(--cqa-surface-2); }
 .cqa-coach__why li + li { margin-top: 2px; }
 .cqa-coach__foot { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: var(--cqa-fs-sm); }
 .cqa-coach__foot .cqa-faint { margin-left: auto; font-size: var(--cqa-fs-xs); }
+
+/* Переписка с ботом до подключения оператора — отдельный блок, свёрнут; дальше разделитель «Подключился оператор» */
+.cqa-pre { margin: 4px 0 6px; padding: 10px 12px; border: 1px dashed var(--cqa-line-2); border-radius: var(--cqa-r); background: var(--cqa-surface-2); display: flex; flex-direction: column; gap: 10px; }
+.cqa-pre[hidden] { display: none; }
+.cqa-pre__h { font-size: var(--cqa-fs-xs); color: var(--cqa-text-3); }
+.cqa-day--op { color: var(--cqa-green-dark); font-weight: 600; }
