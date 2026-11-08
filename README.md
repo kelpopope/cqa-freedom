@@ -101,7 +101,16 @@ CQA проверяет **каждый** диалог по одному и том
 
 Нужен Python 3.11+.
 
-**macOS / Linux**
+**В один клик.** Двойной клик по файлу в корне проекта: при первом запуске создаётся окружение, ставятся зависимости и создаётся `.env` (впишите в него `OPENAI_API_KEY` и `ORG_API_URL`), затем сервер стартует на свободном порту и сам открывает браузер. Остановить — закрыть окно.
+
+| | Windows | macOS |
+|---|---|---|
+| Запуск (данные сохраняются в `cqa.db`) | `start-windows.bat` | `start-mac.command` |
+| С чистого листа (стереть базу и запустить) | `reset-windows.bat` | `reset-mac.command` |
+
+На macOS при первом запуске файл может быть заблокирован как скачанный: правый клик → «Открыть» → «Открыть». Ярлык на рабочий стол: Windows — правый клик по `.bat` → «Отправить» → «Рабочий стол»; macOS — перетащить `.command` на рабочий стол с зажатыми Option + Cmd.
+
+**Вручную, macOS / Linux**
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
@@ -110,7 +119,7 @@ cp .env.example .env            # вписать OPENAI_API_KEY и ORG_API_URL
 uvicorn backend.app.main:app
 ```
 
-**Windows**
+**Вручную, Windows**
 ```bat
 python -m venv .venv
 .venv\Scripts\activate
